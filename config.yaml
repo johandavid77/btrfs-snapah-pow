@@ -1,0 +1,22 @@
+server:
+  host: "0.0.0.0"
+  port: 8080
+  grpc_port: 9090
+  tls_enabled: false
+
+database:
+  driver: "sqlite"
+  database: "/var/lib/snapah-pow/snapah.db"
+
+auth:
+  jwt_secret: "cambia-esto-en-produccion"
+  token_expiry_hours: 24
+  mtls_enabled: false
+
+btrfs:
+  default_snapshot_dir: ".snapshots"
+  max_snapshot_size_gb: 500
+
+agent:
+  server_address: "localhost:9090"
+  heartbeat_seconds: 30
