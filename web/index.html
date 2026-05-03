@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>🔥 Btrfs Snapah Pow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: linear-gradient(135deg, #1e1b4b, #312e81); font-family: sans-serif; color: white; }
+        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; }
+    </style>
+</head>
+<body class="min-h-screen p-6">
+    <div class="container mx-auto">
+        <h1 class="text-3xl font-bold mb-6">🔥 Btrfs Snapah Pow</h1>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="card"><h3 class="text-gray-400">Nodos</h3><p class="text-2xl font-bold" id="nodes">0</p></div>
+            <div class="card"><h3 class="text-gray-400">Snapshots</h3><p class="text-2xl font-bold" id="snaps">0</p></div>
+            <div class="card"><h3 class="text-gray-400">Status</h3><p class="text-green-400 font-bold">🟢 Online</p></div>
+        </div>
+        <div class="card">
+            <h2 class="text-lg font-semibold mb-4">Snapshots</h2>
+            <div id="snapshot-list">Cargando...</div>
+        </div>
+    </div>
+    <script>
+        async function load() {
+            try {
+                const nodes = await fetch('http://localhost:8081/api/nodes').then(r => r.json());
+                const snaps = await fetch('http://localhost:8081/api/snapshots').then(r => r.json());
+                document.getElementById('nodes').textContent = nodes.count || 0;
+                document.getElementById('snaps').textContent = snaps.count || 0;
+                document.getElementById('snapshot-list').innerHTML = (snaps.snapshots || []).map(s => 
+                    `<div class="p-2 bg-white/5 rounded mb-2">${s.snapshot_path || s.id}</div>`
+                ).join('') || 'No hay snapshots';
+            } catch(e) {
+                document.getElementById('snapshot-list').innerHTML = '<span class="text-red-400">Error de conexión</span>';
+            }
+        }
+        load();
+        setInterval(load, 5000);
+    </script>
+</body>
+</html>

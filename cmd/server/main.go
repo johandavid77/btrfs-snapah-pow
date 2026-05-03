@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"sync"
 	"fmt"
 	"log"
 	"net"
@@ -16,6 +15,7 @@ import (
 	"github.com/corp/btrfs-snapah-pow/internal/btrfs"
 	"github.com/corp/btrfs-snapah-pow/internal/config"
 	"github.com/corp/btrfs-snapah-pow/internal/scheduler"
+	"github.com/corp/btrfs-snapah-pow/internal/storage"
 	"google.golang.org/grpc"
 )
 
@@ -24,54 +24,35 @@ var appVersion = "dev"
 type server struct {
 	pb.UnimplementedSnapManagerServer
 	config    *config.Config
+	db        *storage.DB
 	btrfs     *btrfs.Manager
 	scheduler *scheduler.Scheduler
-	nodes     map[string]*NodeInfo
-	snapshots map[string]*SnapshotInfo
-	mu        sync.RWMutex
 }
 
-type NodeInfo struct {
-	ID       string
-	Hostname string
-	Address  string
-	LastSeen time.Time
-	Status   string
-}
-
-type SnapshotInfo struct {
-	ID       string
-	NodeID   string
-	Path     string
-	Created  time.Time
-	ReadOnly bool
-}
-
-func newServer(cfg *config.Config) *server {
+func newServer(cfg *config.Config, db *storage.DB) *server {
 	btrfsMgr := btrfs.NewManager()
 	sched := scheduler.NewScheduler(btrfsMgr)
 
 	return &server{
 		config:    cfg,
+		db:        db,
 		btrfs:     btrfsMgr,
 		scheduler: sched,
-		nodes:     make(map[string]*NodeInfo),
-		snapshots: make(map[string]*SnapshotInfo),
 	}
 }
 
 func (s *server) RegisterNode(ctx context.Context, req *pb.RegisterNodeRequest) (*pb.Node, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	node := &NodeInfo{
+	node := &storage.Node{
 		ID:       generateID(),
 		Hostname: req.Hostname,
 		Address:  req.Address,
-		LastSeen: time.Now(),
 		Status:   "online",
+		LastSeen: time.Now(),
 	}
-	s.nodes[node.ID] = node
+
+	if err := s.db.CreateNode(node); err != nil {
+		return nil, err
+	}
 
 	log.Printf("🖥️  Nodo registrado: %s (%s)", node.Hostname, node.ID)
 	return &pb.Node{
@@ -79,17 +60,19 @@ func (s *server) RegisterNode(ctx context.Context, req *pb.RegisterNodeRequest) 
 		Hostname: node.Hostname,
 		Address:  node.Address,
 		Status:   node.Status,
-		LastSeen: time.Now().Format(time.RFC3339),
+		LastSeen: node.LastSeen.Format(time.RFC3339),
 	}, nil
 }
 
 func (s *server) ListNodes(ctx context.Context, req *pb.ListNodesRequest) (*pb.ListNodesResponse, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	nodes, err := s.db.ListNodes()
+	if err != nil {
+		return nil, err
+	}
 
-	var nodes []*pb.Node
-	for _, n := range s.nodes {
-		nodes = append(nodes, &pb.Node{
+	var pbNodes []*pb.Node
+	for _, n := range nodes {
+		pbNodes = append(pbNodes, &pb.Node{
 			Id:       n.ID,
 			Hostname: n.Hostname,
 			Address:  n.Address,
@@ -97,7 +80,7 @@ func (s *server) ListNodes(ctx context.Context, req *pb.ListNodesRequest) (*pb.L
 			LastSeen: n.LastSeen.Format(time.RFC3339),
 		})
 	}
-	return &pb.ListNodesResponse{Nodes: nodes}, nil
+	return &pb.ListNodesResponse{Nodes: pbNodes}, nil
 }
 
 func (s *server) CreateSnapshot(ctx context.Context, req *pb.CreateSnapshotRequest) (*pb.Snapshot, error) {
@@ -107,71 +90,71 @@ func (s *server) CreateSnapshot(ctx context.Context, req *pb.CreateSnapshotReque
 		return nil, err
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	snap := &SnapshotInfo{
-		ID:       generateID(),
-		NodeID:   req.NodeId,
-		Path:     snapPath,
-		Created:  time.Now(),
-		ReadOnly: req.Readonly,
+	snap := &storage.Snapshot{
+		ID:            generateID(),
+		NodeID:        req.NodeId,
+		SubvolumePath: req.SubvolumePath,
+		SnapshotPath:  snapPath,
+		IsReadOnly:    req.Readonly,
+		Status:        "active",
 	}
-	s.snapshots[snap.ID] = snap
+
+	if err := s.db.CreateSnapshot(snap); err != nil {
+		return nil, err
+	}
 
 	log.Printf("📸 Snapshot creado: %s", snapPath)
 	return &pb.Snapshot{
 		Id:           snap.ID,
 		NodeId:       snap.NodeID,
-		SnapshotPath: snap.Path,
-		CreatedAt:    snap.Created.Format(time.RFC3339),
-		IsReadonly:   snap.ReadOnly,
-		Status:       "active",
+		SnapshotPath: snap.SnapshotPath,
+		SubvolumePath: snap.SubvolumePath,
+		CreatedAt:    time.Now().Format(time.RFC3339),
+		IsReadonly:   snap.IsReadOnly,
+		Status:       snap.Status,
 	}, nil
 }
 
 func (s *server) ListSnapshots(ctx context.Context, req *pb.ListSnapshotsRequest) (*pb.ListSnapshotsResponse, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	snaps, err := s.db.ListSnapshots(req.NodeId)
+	if err != nil {
+		return nil, err
+	}
 
-	var snaps []*pb.Snapshot
-	for _, snap := range s.snapshots {
-		if req.NodeId != "" && snap.NodeID != req.NodeId {
-			continue
-		}
-		snaps = append(snaps, &pb.Snapshot{
-			Id:           snap.ID,
-			NodeId:       snap.NodeID,
-			SnapshotPath: snap.Path,
-			CreatedAt:    snap.Created.Format(time.RFC3339),
-			IsReadonly:   snap.ReadOnly,
-			Status:       "active",
+	var pbSnaps []*pb.Snapshot
+	for _, snap := range snaps {
+		pbSnaps = append(pbSnaps, &pb.Snapshot{
+			Id:            snap.ID,
+			NodeId:        snap.NodeID,
+			SubvolumePath: snap.SubvolumePath,
+			SnapshotPath:  snap.SnapshotPath,
+			CreatedAt:     snap.CreatedAt.Format(time.RFC3339),
+			IsReadonly:    snap.IsReadOnly,
+			Status:        snap.Status,
 		})
 	}
-	return &pb.ListSnapshotsResponse{Snapshots: snaps}, nil
+	return &pb.ListSnapshotsResponse{Snapshots: pbSnaps}, nil
 }
 
 func (s *server) DeleteSnapshot(ctx context.Context, req *pb.DeleteSnapshotRequest) (*pb.DeleteSnapshotResponse, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	snap, ok := s.snapshots[req.SnapshotId]
-	if !ok {
+	snap, err := s.db.GetSnapshot(req.SnapshotId)
+	if err != nil {
 		return &pb.DeleteSnapshotResponse{Success: false, Message: "snapshot not found"}, nil
 	}
 
-	if err := s.btrfs.DeleteSnapshot(snap.Path); err != nil {
+	if err := s.btrfs.DeleteSnapshot(snap.SnapshotPath); err != nil {
 		return &pb.DeleteSnapshotResponse{Success: false, Message: err.Error()}, nil
 	}
 
-	delete(s.snapshots, req.SnapshotId)
-	log.Printf("🗑️  Snapshot eliminado: %s", snap.Path)
+	if err := s.db.DeleteSnapshot(req.SnapshotId); err != nil {
+		return &pb.DeleteSnapshotResponse{Success: false, Message: err.Error()}, nil
+	}
 
+	log.Printf("🗑️  Snapshot eliminado: %s", snap.SnapshotPath)
 	return &pb.DeleteSnapshotResponse{Success: true, Message: "deleted"}, nil
 }
 
 func (s *server) StreamEvents(req *pb.StreamEventsRequest, stream pb.SnapManager_StreamEventsServer) error {
-	// Enviar evento de bienvenida
 	event := &pb.Event{
 		Id:        generateID(),
 		Type:      "connection",
@@ -184,7 +167,11 @@ func (s *server) StreamEvents(req *pb.StreamEventsRequest, stream pb.SnapManager
 		return err
 	}
 
-	// Mantener stream abierto
+	// Actualizar last_seen del nodo
+	if req.NodeId != "" {
+		s.db.UpdateNodeStatus(req.NodeId, "online")
+	}
+
 	for {
 		select {
 		case <-stream.Context().Done():
@@ -213,8 +200,16 @@ func main() {
 		log.Fatalf("❌ Config error: %v", err)
 	}
 
-	srv := newServer(cfg)
-	_ = srv
+	// Crear directorio para DB si no existe
+	os.MkdirAll("data", 0755)
+
+	// Inicializar base de datos
+	db, err := storage.NewDB("data/snapah.db")
+	if err != nil {
+		log.Fatalf("❌ Database error: %v", err)
+	}
+
+	srv := newServer(cfg, db)
 
 	// gRPC server
 	grpcAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.GRPCPort)
@@ -236,9 +231,30 @@ func main() {
 	httpAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	httpMux := http.NewServeMux()
 
+	httpMux.Handle("/", http.FileServer(http.Dir("web")))
 	httpMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"status":"ok","version":"` + appVersion + `"}`))
+	})
+
+	httpMux.HandleFunc("/api/nodes", func(w http.ResponseWriter, r *http.Request) {
+		nodes, err := db.ListNodes()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"count":%d,"nodes":[]}`, len(nodes))
+	})
+
+	httpMux.HandleFunc("/api/snapshots", func(w http.ResponseWriter, r *http.Request) {
+		snaps, err := db.ListSnapshots("")
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"count":%d,"snapshots":[]}`, len(snaps))
 	})
 
 	httpServer := &http.Server{
