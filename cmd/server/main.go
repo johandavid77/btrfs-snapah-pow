@@ -254,7 +254,15 @@ func main() {
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"count":%d,"snapshots":[]}`, len(snaps))
+		w.Write([]byte(`{"count":` + fmt.Sprintf("%d", len(snaps)) + `,"snapshots":[`))
+		log.Printf("DEBUG: %d snapshots to render", len(snaps))
+		for i, s := range snaps {
+			if i > 0 {
+				w.Write([]byte(","))
+			}
+			w.Write([]byte(`{"id":"` + s.ID + `","snapshot_path":"` + s.SnapshotPath + `","created_at":"` + s.CreatedAt.Format(time.RFC3339) + `","is_readonly":` + fmt.Sprintf("%t", s.IsReadOnly) + `}`))
+		}
+		w.Write([]byte(`]}`))
 	})
 
 	httpServer := &http.Server{
