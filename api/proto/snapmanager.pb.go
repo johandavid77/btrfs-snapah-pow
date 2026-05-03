@@ -828,7 +828,7 @@ const file_snapmanager_proto_rawDesc = "" +
 	"\rListSnapshots\x12!.snapmanager.ListSnapshotsRequest\x1a\".snapmanager.ListSnapshotsResponse\x12C\n" +
 	"\fRegisterNode\x12 .snapmanager.RegisterNodeRequest\x1a\x11.snapmanager.Node\x12J\n" +
 	"\tListNodes\x12\x1d.snapmanager.ListNodesRequest\x1a\x1e.snapmanager.ListNodesResponse\x12F\n" +
-	"\fStreamEvents\x12 .snapmanager.StreamEventsRequest\x1a\x12.snapmanager.Event0\x01B,Z*github.com/corp/btrfs-snapah-pow/api/protob\x06proto3"
+	"\fStreamEvents\x12 .snapmanager.StreamEventsRequest\x1a\x12.snapmanager.Event0\x01B,Z*github.com/johandavid77/btrfs-snapah-pow/api/protob\x06proto3"
 
 var (
 	file_snapmanager_proto_rawDescOnce sync.Once

@@ -2,89 +2,148 @@ package scheduler
 
 import (
 	"fmt"
+	"log"
 	"time"
 
-	"github.com/corp/btrfs-snapah-pow/internal/btrfs"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/btrfs"
+	"github.com/robfig/cron/v3"
 )
 
 type Scheduler struct {
 	btrfs    *btrfs.Manager
 	policies map[string]*Policy
-	timers   map[string]*time.Timer
+	entryIDs map[string]cron.EntryID
+	cron     *cron.Cron
 }
 
 type Policy struct {
-	ID            string
-	Name          string
-	NodeID        string
-	SubvolumePath string
-	Schedule      string
-	RetentionHourly int
-	RetentionDaily  int
-	RetentionWeekly int
+	ID               string
+	Name             string
+	NodeID           string
+	SubvolumePath    string
+	Schedule         string
+	RetentionHourly  int
+	RetentionDaily   int
+	RetentionWeekly  int
 	RetentionMonthly int
-	ReadOnly      bool
-	Replicate     bool
-	Enabled       bool
+	ReadOnly         bool
+	Replicate        bool
+	Enabled          bool
 }
 
 func NewScheduler(btrfsMgr *btrfs.Manager) *Scheduler {
-	return &Scheduler{
+	c := cron.New(cron.WithSeconds())
+	s := &Scheduler{
 		btrfs:    btrfsMgr,
 		policies: make(map[string]*Policy),
-		timers:   make(map[string]*time.Timer),
+		entryIDs: make(map[string]cron.EntryID),
+		cron:     c,
 	}
+	c.Start()
+	return s
 }
 
 func (s *Scheduler) AddPolicy(p *Policy) error {
+	s.policies[p.ID] = p
+
 	if !p.Enabled {
-		s.policies[p.ID] = p
+		log.Printf("📅 Política '%s' deshabilitada, no programada", p.Name)
 		return nil
 	}
 
-	// Parse simple: cada X minutos para demo
-	// En producción: usar github.com/go-co-op/gocron/v2
-	interval := 5 * time.Minute
-	timer := time.AfterFunc(interval, func() {
+	schedule := p.Schedule
+	if schedule == "" {
+		schedule = "0 * * * *" // cada hora por defecto
+	}
+
+	entryID, err := s.cron.AddFunc(schedule, func() {
 		s.execute(p)
 	})
+	if err != nil {
+		return fmt.Errorf("schedule inválido '%s': %w", schedule, err)
+	}
 
-	s.policies[p.ID] = p
-	s.timers[p.ID] = timer
-
-	fmt.Printf("📅 Política '%s' programada cada %v\n", p.Name, interval)
+	s.entryIDs[p.ID] = entryID
+	log.Printf("📅 Política '%s' programada: %s", p.Name, schedule)
 	return nil
 }
 
 func (s *Scheduler) RemovePolicy(id string) {
-	if timer, ok := s.timers[id]; ok {
-		timer.Stop()
-		delete(s.timers, id)
+	if entryID, ok := s.entryIDs[id]; ok {
+		s.cron.Remove(entryID)
+		delete(s.entryIDs, id)
 	}
 	delete(s.policies, id)
+	log.Printf("🗑️  Política %s eliminada del scheduler", id)
+}
+
+func (s *Scheduler) UpdatePolicy(p *Policy) error {
+	s.RemovePolicy(p.ID)
+	return s.AddPolicy(p)
+}
+
+func (s *Scheduler) ListPolicies() []*Policy {
+	policies := make([]*Policy, 0, len(s.policies))
+	for _, p := range s.policies {
+		policies = append(policies, p)
+	}
+	return policies
+}
+
+func (s *Scheduler) NextRun(id string) *time.Time {
+	entryID, ok := s.entryIDs[id]
+	if !ok {
+		return nil
+	}
+	entry := s.cron.Entry(entryID)
+	next := entry.Next
+	return &next
 }
 
 func (s *Scheduler) execute(p *Policy) {
-	fmt.Printf("🔥 Ejecutando snapshot: %s -> %s\n", p.Name, p.SubvolumePath)
+	log.Printf("🔥 Ejecutando snapshot automático: %s -> %s", p.Name, p.SubvolumePath)
 
 	snapPath := btrfs.SnapshotPath(p.SubvolumePath, p.Name)
 	if err := s.btrfs.CreateSnapshot(p.SubvolumePath, snapPath, p.ReadOnly); err != nil {
-		fmt.Printf("❌ Error: %v\n", err)
+		log.Printf("❌ Error creando snapshot '%s': %v", p.Name, err)
 		return
 	}
 
-	fmt.Printf("✅ Snapshot creado: %s\n", snapPath)
+	log.Printf("✅ Snapshot automático creado: %s", snapPath)
 
-	// Reprogramar
-	if p.Enabled {
-		s.timers[p.ID] = time.AfterFunc(5*time.Minute, func() {
-			s.execute(p)
-		})
+	// Aplicar retención
+	s.applyRetention(p)
+}
+
+func (s *Scheduler) applyRetention(p *Policy) {
+	snapshots, err := s.btrfs.ListSnapshots(p.SubvolumePath)
+	if err != nil {
+		log.Printf("⚠️  No se pudo listar snapshots para retención: %v", err)
+		return
+	}
+
+	maxToKeep := p.RetentionDaily
+	if maxToKeep <= 0 {
+		maxToKeep = 7 // default: 7 días
+	}
+
+	if len(snapshots) <= maxToKeep {
+		return
+	}
+
+	// Eliminar los más antiguos que excedan la retención
+	toDelete := snapshots[maxToKeep:]
+	for _, snap := range toDelete {
+		if err := s.btrfs.DeleteSnapshot(snap.Path); err != nil {
+			log.Printf("⚠️  No se pudo eliminar snapshot viejo %s: %v", snap.Path, err)
+		} else {
+			log.Printf("🗑️  Retención: eliminado snapshot viejo %s", snap.Path)
+		}
 	}
 }
 
 func (s *Scheduler) Stop() {
-	for _, timer := range s.timers {
-		timer.Stop()
-	}
+	ctx := s.cron.Stop()
+	<-ctx.Done()
+	log.Println("⏹️  Scheduler detenido")
 }

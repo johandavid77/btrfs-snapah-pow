@@ -1,0 +1,12 @@
+[Unit]
+Description=Btrfs Snapah Pow Server
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/opt/snapah-pow/bin/snapah-server
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

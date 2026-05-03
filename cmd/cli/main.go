@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	pb "github.com/corp/btrfs-snapah-pow/api/proto"
+	pb "github.com/johandavid77/btrfs-snapah-pow/api/proto"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"

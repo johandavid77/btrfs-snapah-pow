@@ -59,3 +59,15 @@ help:
 	@echo "  $(YELLOW)clean$(RESET)        Elimina binarios"
 	@echo "  $(YELLOW)help$(RESET)         Muestra esta ayuda"
 	@echo ""
+
+install-systemd: build ## Instala servicios systemd
+	@echo "$(CYAN)⚙️  Instalando servicios systemd...$(RESET)"
+	@sudo mkdir -p /opt/snapah-pow/bin /opt/snapah-pow/data /opt/snapah-pow/web
+	@sudo cp bin/snapah-server bin/snapah-agent bin/snapah /opt/snapah-pow/bin/
+	@sudo cp -r web/* /opt/snapah-pow/web/ 2>/dev/null || true
+	@sudo cp config.yaml /opt/snapah-pow/
+	@sudo cp deploy/systemd/*.service /etc/systemd/system/
+	@sudo systemctl daemon-reload
+	@echo "$(GREEN)✅ Servicios instalados$(RESET)"
+	@echo "$(YELLOW)   sudo systemctl enable --now snapah-server$(RESET)"
+	@echo "$(YELLOW)   sudo systemctl enable --now snapah-agent$(RESET)"

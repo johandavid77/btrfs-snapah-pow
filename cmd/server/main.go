@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -11,11 +12,12 @@ import (
 	"syscall"
 	"time"
 
-	pb "github.com/corp/btrfs-snapah-pow/api/proto"
-	"github.com/corp/btrfs-snapah-pow/internal/btrfs"
-	"github.com/corp/btrfs-snapah-pow/internal/config"
-	"github.com/corp/btrfs-snapah-pow/internal/scheduler"
-	"github.com/corp/btrfs-snapah-pow/internal/storage"
+	pb "github.com/johandavid77/btrfs-snapah-pow/api/proto"
+	"github.com/google/uuid"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/btrfs"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/config"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/scheduler"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/storage"
 	"google.golang.org/grpc"
 )
 
@@ -232,37 +234,141 @@ func main() {
 	httpMux := http.NewServeMux()
 
 	httpMux.Handle("/", http.FileServer(http.Dir("web")))
+
+	// ── Health ────────────────────────────────────────────
 	httpMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"status":"ok","version":"` + appVersion + `"}`))
+		jsonResp(w, map[string]string{"status": "ok", "version": appVersion})
 	})
 
+	// ── Nodes ─────────────────────────────────────────────
 	httpMux.HandleFunc("/api/nodes", func(w http.ResponseWriter, r *http.Request) {
 		nodes, err := db.ListNodes()
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+			httpErr(w, err, http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"count":%d,"nodes":[]}`, len(nodes))
+		jsonResp(w, map[string]interface{}{"count": len(nodes), "nodes": nodes})
 	})
 
+	// ── Snapshots ─────────────────────────────────────────
 	httpMux.HandleFunc("/api/snapshots", func(w http.ResponseWriter, r *http.Request) {
-		snaps, err := db.ListSnapshots("")
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
+		switch r.Method {
+		case http.MethodGet:
+			nodeID := r.URL.Query().Get("node_id")
+			snaps, err := db.ListSnapshots(nodeID)
+			if err != nil {
+				httpErr(w, err, http.StatusInternalServerError)
+				return
+			}
+			jsonResp(w, map[string]interface{}{"count": len(snaps), "snapshots": snaps})
+
+		case http.MethodPost:
+			var req struct {
+				NodeID        string `json:"node_id"`
+				SubvolumePath string `json:"subvolume_path"`
+				SnapshotName  string `json:"snapshot_name"`
+				Readonly      bool   `json:"readonly"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+				httpErr(w, err, http.StatusBadRequest)
+				return
+			}
+			resp, err := srv.CreateSnapshot(r.Context(), &pb.CreateSnapshotRequest{
+				NodeId:        req.NodeID,
+				SubvolumePath: req.SubvolumePath,
+				SnapshotName:  req.SnapshotName,
+				Readonly:      req.Readonly,
+			})
+			if err != nil {
+				httpErr(w, err, http.StatusInternalServerError)
+				return
+			}
+			w.WriteHeader(http.StatusCreated)
+			jsonResp(w, resp)
+
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})
+
+	httpMux.HandleFunc("/api/snapshots/delete", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"count":` + fmt.Sprintf("%d", len(snaps)) + `,"snapshots":[`))
-		log.Printf("DEBUG: %d snapshots to render", len(snaps))
-		for i, s := range snaps {
-			if i > 0 {
-				w.Write([]byte(","))
-			}
-			w.Write([]byte(`{"id":"` + s.ID + `","snapshot_path":"` + s.SnapshotPath + `","created_at":"` + s.CreatedAt.Format(time.RFC3339) + `","is_readonly":` + fmt.Sprintf("%t", s.IsReadOnly) + `}`))
+		var req struct {
+			SnapshotID string `json:"snapshot_id"`
+			Force      bool   `json:"force"`
 		}
-		w.Write([]byte(`]}`))
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			httpErr(w, err, http.StatusBadRequest)
+			return
+		}
+		resp, err := srv.DeleteSnapshot(r.Context(), &pb.DeleteSnapshotRequest{
+			SnapshotId: req.SnapshotID,
+			Force:      req.Force,
+		})
+		if err != nil {
+			httpErr(w, err, http.StatusInternalServerError)
+			return
+		}
+		jsonResp(w, resp)
+	})
+
+	// ── Events ────────────────────────────────────────────
+	httpMux.HandleFunc("/api/events", func(w http.ResponseWriter, r *http.Request) {
+		events, err := db.ListEvents(50)
+		if err != nil {
+			httpErr(w, err, http.StatusInternalServerError)
+			return
+		}
+		jsonResp(w, map[string]interface{}{"count": len(events), "events": events})
+	})
+
+	// ── Policies ──────────────────────────────────────────
+	httpMux.HandleFunc("/api/policies", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			nodeID := r.URL.Query().Get("node_id")
+			policies, err := db.ListPolicies(nodeID)
+			if err != nil {
+				httpErr(w, err, http.StatusInternalServerError)
+				return
+			}
+			jsonResp(w, map[string]interface{}{"count": len(policies), "policies": policies})
+
+		case http.MethodPost:
+			var p storage.Policy
+			if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+				httpErr(w, err, http.StatusBadRequest)
+				return
+			}
+			p.ID = generateID()
+			if err := db.CreatePolicy(&p); err != nil {
+				httpErr(w, err, http.StatusInternalServerError)
+				return
+			}
+			// Agregar al scheduler
+			srv.scheduler.AddPolicy(&scheduler.Policy{
+				ID:               p.ID,
+				Name:             p.Name,
+				NodeID:           p.NodeID,
+				SubvolumePath:    p.SubvolumePath,
+				Schedule:         p.Schedule,
+				RetentionHourly:  p.RetentionHourly,
+				RetentionDaily:   p.RetentionDaily,
+				RetentionWeekly:  p.RetentionWeekly,
+				RetentionMonthly: p.RetentionMonthly,
+				ReadOnly:         p.ReadOnly,
+				Replicate:        p.Replicate,
+				Enabled:          p.Enabled,
+			})
+			w.WriteHeader(http.StatusCreated)
+			jsonResp(w, p)
+
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
 	})
 
 	httpServer := &http.Server{
@@ -293,5 +399,16 @@ func main() {
 }
 
 func generateID() string {
-	return fmt.Sprintf("%d", time.Now().UnixNano())
+	return uuid.New().String()
+}
+
+func jsonResp(w http.ResponseWriter, v interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(v)
+}
+
+func httpErr(w http.ResponseWriter, err error, code int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 }

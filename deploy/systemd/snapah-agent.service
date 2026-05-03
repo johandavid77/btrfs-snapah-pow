@@ -1,0 +1,13 @@
+[Unit]
+Description=Btrfs Snapah Pow Agent
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/opt/snapah-pow/bin/snapah-agent
+Restart=always
+Environment="SNAPAH_SERVER=localhost:9090"
+
+[Install]
+WantedBy=multi-user.target
