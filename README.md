@@ -6,7 +6,6 @@
 
 
 
-![Snapah Pow](assets/logo.svg)
 Gestion centralizada de snapshots BTRFS para entornos multi-nodo.
 Servidor central + agentes distribuidos + CLI comunicados por gRPC.
 
