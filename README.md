@@ -53,3 +53,56 @@ Servidor central + agentes distribuidos + CLI comunicados por gRPC.
 ## Licencia
 
 GPL3 2026 Johan David
+---
+
+## Roadmap
+
+### v0.1.0 — Base funcional (actual)
+- [x] Arquitectura servidor + agente + CLI
+- [x] gRPC con Protocol Buffers
+- [x] Crear, listar y eliminar snapshots BTRFS
+- [x] Registro y heartbeat de nodos
+- [x] SQLite embebido con GORM
+- [x] Scheduler con expresiones cron reales
+- [x] Retención automática de snapshots
+- [x] REST API completa
+- [x] Streaming de eventos gRPC
+- [x] Instalación como servicio systemd
+- [x] IDs con UUID (sin colisiones)
+
+### v0.2.0 — Seguridad y autenticación
+- [ ] JWT en endpoints HTTP
+- [ ] mTLS entre servidor y agentes
+- [ ] Validación real de tokens de registro
+- [ ] RBAC (roles: admin, operator, viewer)
+- [ ] Rate limiting en API
+
+### v0.3.0 — Web UI
+- [ ] Dashboard con lista de nodos en tiempo real
+- [ ] Tabla de snapshots con filtros
+- [ ] Crear y eliminar snapshots desde el navegador
+- [ ] Gestión de políticas cron via UI
+- [ ] Log de eventos en tiempo real (WebSocket)
+- [ ] Indicador de estado de nodos online/offline
+
+### v0.4.0 — Replicación
+- [ ] btrfs send/receive entre nodos
+- [ ] Políticas de replicación configurables
+- [ ] Replicación incremental (solo delta)
+- [ ] Estado y progreso de replicación en tiempo real
+- [ ] Retry automático en fallo de red
+
+### v0.5.0 — Observabilidad
+- [ ] Métricas Prometheus (/metrics)
+- [ ] Dashboard Grafana preconfigurado
+- [ ] Alertas configurables (snapshot fallido, nodo offline)
+- [ ] Historial de ejecuciones de políticas
+- [ ] Uptime monitor integrado
+
+### v0.6.0 — Producción
+- [ ] Soporte PostgreSQL además de SQLite
+- [ ] Imagen Docker oficial
+- [ ] Helm chart para Kubernetes
+- [ ] CLI interactivo (TUI con Bubble Tea)
+- [ ] Documentación completa en GitHub Pages
+- [ ] Tests de integración end-to-end
