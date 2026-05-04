@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.1
 // - protoc             v3.19.6
-// source: snapmanager.proto
+// source: api/proto/snapmanager.proto
 
 package proto
 
@@ -311,5 +311,5 @@ var SnapManager_ServiceDesc = grpc.ServiceDesc{
 			ServerStreams: true,
 		},
 	},
-	Metadata: "snapmanager.proto",
+	Metadata: "api/proto/snapmanager.proto",
 }

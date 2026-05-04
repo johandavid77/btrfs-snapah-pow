@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.11
 // 	protoc        v3.19.6
-// source: snapmanager.proto
+// source: api/proto/snapmanager.proto
 
 package proto
 
@@ -39,7 +39,7 @@ type Snapshot struct {
 
 func (x *Snapshot) Reset() {
 	*x = Snapshot{}
-	mi := &file_snapmanager_proto_msgTypes[0]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -51,7 +51,7 @@ func (x *Snapshot) String() string {
 func (*Snapshot) ProtoMessage() {}
 
 func (x *Snapshot) ProtoReflect() protoreflect.Message {
-	mi := &file_snapmanager_proto_msgTypes[0]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -64,7 +64,7 @@ func (x *Snapshot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Snapshot.ProtoReflect.Descriptor instead.
 func (*Snapshot) Descriptor() ([]byte, []int) {
-	return file_snapmanager_proto_rawDescGZIP(), []int{0}
+	return file_api_proto_snapmanager_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Snapshot) GetId() string {
@@ -150,7 +150,7 @@ type CreateSnapshotRequest struct {
 
 func (x *CreateSnapshotRequest) Reset() {
 	*x = CreateSnapshotRequest{}
-	mi := &file_snapmanager_proto_msgTypes[1]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -162,7 +162,7 @@ func (x *CreateSnapshotRequest) String() string {
 func (*CreateSnapshotRequest) ProtoMessage() {}
 
 func (x *CreateSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_snapmanager_proto_msgTypes[1]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -175,7 +175,7 @@ func (x *CreateSnapshotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*CreateSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_snapmanager_proto_rawDescGZIP(), []int{1}
+	return file_api_proto_snapmanager_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *CreateSnapshotRequest) GetNodeId() string {
@@ -223,7 +223,7 @@ type DeleteSnapshotRequest struct {
 
 func (x *DeleteSnapshotRequest) Reset() {
 	*x = DeleteSnapshotRequest{}
-	mi := &file_snapmanager_proto_msgTypes[2]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -235,7 +235,7 @@ func (x *DeleteSnapshotRequest) String() string {
 func (*DeleteSnapshotRequest) ProtoMessage() {}
 
 func (x *DeleteSnapshotRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_snapmanager_proto_msgTypes[2]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -248,7 +248,7 @@ func (x *DeleteSnapshotRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSnapshotRequest.ProtoReflect.Descriptor instead.
 func (*DeleteSnapshotRequest) Descriptor() ([]byte, []int) {
-	return file_snapmanager_proto_rawDescGZIP(), []int{2}
+	return file_api_proto_snapmanager_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *DeleteSnapshotRequest) GetSnapshotId() string {
@@ -275,7 +275,7 @@ type DeleteSnapshotResponse struct {
 
 func (x *DeleteSnapshotResponse) Reset() {
 	*x = DeleteSnapshotResponse{}
-	mi := &file_snapmanager_proto_msgTypes[3]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -287,7 +287,7 @@ func (x *DeleteSnapshotResponse) String() string {
 func (*DeleteSnapshotResponse) ProtoMessage() {}
 
 func (x *DeleteSnapshotResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_snapmanager_proto_msgTypes[3]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -300,7 +300,7 @@ func (x *DeleteSnapshotResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSnapshotResponse.ProtoReflect.Descriptor instead.
 func (*DeleteSnapshotResponse) Descriptor() ([]byte, []int) {
-	return file_snapmanager_proto_rawDescGZIP(), []int{3}
+	return file_api_proto_snapmanager_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *DeleteSnapshotResponse) GetSuccess() bool {
@@ -327,7 +327,7 @@ type ListSnapshotsRequest struct {
 
 func (x *ListSnapshotsRequest) Reset() {
 	*x = ListSnapshotsRequest{}
-	mi := &file_snapmanager_proto_msgTypes[4]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -339,7 +339,7 @@ func (x *ListSnapshotsRequest) String() string {
 func (*ListSnapshotsRequest) ProtoMessage() {}
 
 func (x *ListSnapshotsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_snapmanager_proto_msgTypes[4]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -352,7 +352,7 @@ func (x *ListSnapshotsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSnapshotsRequest.ProtoReflect.Descriptor instead.
 func (*ListSnapshotsRequest) Descriptor() ([]byte, []int) {
-	return file_snapmanager_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_snapmanager_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ListSnapshotsRequest) GetNodeId() string {
@@ -378,7 +378,7 @@ type ListSnapshotsResponse struct {
 
 func (x *ListSnapshotsResponse) Reset() {
 	*x = ListSnapshotsResponse{}
-	mi := &file_snapmanager_proto_msgTypes[5]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -390,7 +390,7 @@ func (x *ListSnapshotsResponse) String() string {
 func (*ListSnapshotsResponse) ProtoMessage() {}
 
 func (x *ListSnapshotsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_snapmanager_proto_msgTypes[5]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -403,7 +403,7 @@ func (x *ListSnapshotsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListSnapshotsResponse.ProtoReflect.Descriptor instead.
 func (*ListSnapshotsResponse) Descriptor() ([]byte, []int) {
-	return file_snapmanager_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_snapmanager_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ListSnapshotsResponse) GetSnapshots() []*Snapshot {
@@ -426,7 +426,7 @@ type Node struct {
 
 func (x *Node) Reset() {
 	*x = Node{}
-	mi := &file_snapmanager_proto_msgTypes[6]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -438,7 +438,7 @@ func (x *Node) String() string {
 func (*Node) ProtoMessage() {}
 
 func (x *Node) ProtoReflect() protoreflect.Message {
-	mi := &file_snapmanager_proto_msgTypes[6]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -451,7 +451,7 @@ func (x *Node) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Node.ProtoReflect.Descriptor instead.
 func (*Node) Descriptor() ([]byte, []int) {
-	return file_snapmanager_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_snapmanager_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Node) GetId() string {
@@ -500,7 +500,7 @@ type RegisterNodeRequest struct {
 
 func (x *RegisterNodeRequest) Reset() {
 	*x = RegisterNodeRequest{}
-	mi := &file_snapmanager_proto_msgTypes[7]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -512,7 +512,7 @@ func (x *RegisterNodeRequest) String() string {
 func (*RegisterNodeRequest) ProtoMessage() {}
 
 func (x *RegisterNodeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_snapmanager_proto_msgTypes[7]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -525,7 +525,7 @@ func (x *RegisterNodeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterNodeRequest.ProtoReflect.Descriptor instead.
 func (*RegisterNodeRequest) Descriptor() ([]byte, []int) {
-	return file_snapmanager_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_snapmanager_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *RegisterNodeRequest) GetHostname() string {
@@ -557,7 +557,7 @@ type ListNodesRequest struct {
 
 func (x *ListNodesRequest) Reset() {
 	*x = ListNodesRequest{}
-	mi := &file_snapmanager_proto_msgTypes[8]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -569,7 +569,7 @@ func (x *ListNodesRequest) String() string {
 func (*ListNodesRequest) ProtoMessage() {}
 
 func (x *ListNodesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_snapmanager_proto_msgTypes[8]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -582,7 +582,7 @@ func (x *ListNodesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodesRequest.ProtoReflect.Descriptor instead.
 func (*ListNodesRequest) Descriptor() ([]byte, []int) {
-	return file_snapmanager_proto_rawDescGZIP(), []int{8}
+	return file_api_proto_snapmanager_proto_rawDescGZIP(), []int{8}
 }
 
 type ListNodesResponse struct {
@@ -594,7 +594,7 @@ type ListNodesResponse struct {
 
 func (x *ListNodesResponse) Reset() {
 	*x = ListNodesResponse{}
-	mi := &file_snapmanager_proto_msgTypes[9]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -606,7 +606,7 @@ func (x *ListNodesResponse) String() string {
 func (*ListNodesResponse) ProtoMessage() {}
 
 func (x *ListNodesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_snapmanager_proto_msgTypes[9]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -619,7 +619,7 @@ func (x *ListNodesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListNodesResponse.ProtoReflect.Descriptor instead.
 func (*ListNodesResponse) Descriptor() ([]byte, []int) {
-	return file_snapmanager_proto_rawDescGZIP(), []int{9}
+	return file_api_proto_snapmanager_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ListNodesResponse) GetNodes() []*Node {
@@ -643,7 +643,7 @@ type Event struct {
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_snapmanager_proto_msgTypes[10]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -655,7 +655,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_snapmanager_proto_msgTypes[10]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -668,7 +668,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_snapmanager_proto_rawDescGZIP(), []int{10}
+	return file_api_proto_snapmanager_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Event) GetId() string {
@@ -722,7 +722,7 @@ type StreamEventsRequest struct {
 
 func (x *StreamEventsRequest) Reset() {
 	*x = StreamEventsRequest{}
-	mi := &file_snapmanager_proto_msgTypes[11]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -734,7 +734,7 @@ func (x *StreamEventsRequest) String() string {
 func (*StreamEventsRequest) ProtoMessage() {}
 
 func (x *StreamEventsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_snapmanager_proto_msgTypes[11]
+	mi := &file_api_proto_snapmanager_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -747,7 +747,7 @@ func (x *StreamEventsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StreamEventsRequest.ProtoReflect.Descriptor instead.
 func (*StreamEventsRequest) Descriptor() ([]byte, []int) {
-	return file_snapmanager_proto_rawDescGZIP(), []int{11}
+	return file_api_proto_snapmanager_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *StreamEventsRequest) GetNodeId() string {
@@ -757,11 +757,11 @@ func (x *StreamEventsRequest) GetNodeId() string {
 	return ""
 }
 
-var File_snapmanager_proto protoreflect.FileDescriptor
+var File_api_proto_snapmanager_proto protoreflect.FileDescriptor
 
-const file_snapmanager_proto_rawDesc = "" +
+const file_api_proto_snapmanager_proto_rawDesc = "" +
 	"\n" +
-	"\x11snapmanager.proto\x12\vsnapmanager\"\x8f\x03\n" +
+	"\x1bapi/proto/snapmanager.proto\x12\vsnapmanager\"\x8f\x03\n" +
 	"\bSnapshot\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
 	"\anode_id\x18\x02 \x01(\tR\x06nodeId\x12%\n" +
@@ -828,22 +828,22 @@ const file_snapmanager_proto_rawDesc = "" +
 	"\rListSnapshots\x12!.snapmanager.ListSnapshotsRequest\x1a\".snapmanager.ListSnapshotsResponse\x12C\n" +
 	"\fRegisterNode\x12 .snapmanager.RegisterNodeRequest\x1a\x11.snapmanager.Node\x12J\n" +
 	"\tListNodes\x12\x1d.snapmanager.ListNodesRequest\x1a\x1e.snapmanager.ListNodesResponse\x12F\n" +
-	"\fStreamEvents\x12 .snapmanager.StreamEventsRequest\x1a\x12.snapmanager.Event0\x01B,Z*github.com/johandavid77/btrfs-snapah-pow/api/protob\x06proto3"
+	"\fStreamEvents\x12 .snapmanager.StreamEventsRequest\x1a\x12.snapmanager.Event0\x01B,Z*github.com/corp/btrfs-snapah-pow/api/protob\x06proto3"
 
 var (
-	file_snapmanager_proto_rawDescOnce sync.Once
-	file_snapmanager_proto_rawDescData []byte
+	file_api_proto_snapmanager_proto_rawDescOnce sync.Once
+	file_api_proto_snapmanager_proto_rawDescData []byte
 )
 
-func file_snapmanager_proto_rawDescGZIP() []byte {
-	file_snapmanager_proto_rawDescOnce.Do(func() {
-		file_snapmanager_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_snapmanager_proto_rawDesc), len(file_snapmanager_proto_rawDesc)))
+func file_api_proto_snapmanager_proto_rawDescGZIP() []byte {
+	file_api_proto_snapmanager_proto_rawDescOnce.Do(func() {
+		file_api_proto_snapmanager_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_snapmanager_proto_rawDesc), len(file_api_proto_snapmanager_proto_rawDesc)))
 	})
-	return file_snapmanager_proto_rawDescData
+	return file_api_proto_snapmanager_proto_rawDescData
 }
 
-var file_snapmanager_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
-var file_snapmanager_proto_goTypes = []any{
+var file_api_proto_snapmanager_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_api_proto_snapmanager_proto_goTypes = []any{
 	(*Snapshot)(nil),               // 0: snapmanager.Snapshot
 	(*CreateSnapshotRequest)(nil),  // 1: snapmanager.CreateSnapshotRequest
 	(*DeleteSnapshotRequest)(nil),  // 2: snapmanager.DeleteSnapshotRequest
@@ -859,7 +859,7 @@ var file_snapmanager_proto_goTypes = []any{
 	nil,                            // 12: snapmanager.Snapshot.LabelsEntry
 	nil,                            // 13: snapmanager.CreateSnapshotRequest.LabelsEntry
 }
-var file_snapmanager_proto_depIdxs = []int32{
+var file_api_proto_snapmanager_proto_depIdxs = []int32{
 	12, // 0: snapmanager.Snapshot.labels:type_name -> snapmanager.Snapshot.LabelsEntry
 	13, // 1: snapmanager.CreateSnapshotRequest.labels:type_name -> snapmanager.CreateSnapshotRequest.LabelsEntry
 	0,  // 2: snapmanager.ListSnapshotsResponse.snapshots:type_name -> snapmanager.Snapshot
@@ -883,26 +883,26 @@ var file_snapmanager_proto_depIdxs = []int32{
 	0,  // [0:4] is the sub-list for field type_name
 }
 
-func init() { file_snapmanager_proto_init() }
-func file_snapmanager_proto_init() {
-	if File_snapmanager_proto != nil {
+func init() { file_api_proto_snapmanager_proto_init() }
+func file_api_proto_snapmanager_proto_init() {
+	if File_api_proto_snapmanager_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_snapmanager_proto_rawDesc), len(file_snapmanager_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_snapmanager_proto_rawDesc), len(file_api_proto_snapmanager_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_snapmanager_proto_goTypes,
-		DependencyIndexes: file_snapmanager_proto_depIdxs,
-		MessageInfos:      file_snapmanager_proto_msgTypes,
+		GoTypes:           file_api_proto_snapmanager_proto_goTypes,
+		DependencyIndexes: file_api_proto_snapmanager_proto_depIdxs,
+		MessageInfos:      file_api_proto_snapmanager_proto_msgTypes,
 	}.Build()
-	File_snapmanager_proto = out.File
-	file_snapmanager_proto_goTypes = nil
-	file_snapmanager_proto_depIdxs = nil
+	File_api_proto_snapmanager_proto = out.File
+	file_api_proto_snapmanager_proto_goTypes = nil
+	file_api_proto_snapmanager_proto_depIdxs = nil
 }
