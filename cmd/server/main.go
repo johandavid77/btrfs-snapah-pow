@@ -17,6 +17,7 @@ import (
 	"github.com/johandavid77/btrfs-snapah-pow/internal/btrfs"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/config"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/ratelimit"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/replication"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/scheduler"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/storage"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/tlsconfig"
@@ -34,6 +35,7 @@ type server struct {
 	scheduler *scheduler.Scheduler
 	authMgr   *auth.Manager
 	users     *auth.UserStore
+	replMgr   *replication.Manager
 }
 
 func newServer(cfg *config.Config, db *storage.DB) *server {
@@ -49,9 +51,12 @@ func newServer(cfg *config.Config, db *storage.DB) *server {
 	users.Add(generateID(), "admin",    adminPass,    "admin")
 	users.Add(generateID(), "operator", "operator123", "operator")
 
+	replMgr := replication.NewManager(btrfsMgr, db)
+
 	return &server{
 		config: cfg, db: db, btrfs: btrfsMgr,
 		scheduler: sched, authMgr: authMgr, users: users,
+		replMgr: replMgr,
 	}
 }
 
@@ -338,6 +343,58 @@ func (s *server) handlePolicies(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+
+func (s *server) handleReplicate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	// Solo admin u operator
+	role := r.Header.Get("X-User-Role")
+	if role != "admin" && role != "operator" {
+		forbidden(w, "permisos insuficientes")
+		return
+	}
+
+	var req struct {
+		SnapshotID     string `json:"snapshot_id"`
+		TargetNodeID   string `json:"target_node_id"`
+		TargetAddress  string `json:"target_address"`
+		TargetDestPath string `json:"target_dest_path"`
+		ParentPath     string `json:"parent_path"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpErr(w, err, http.StatusBadRequest)
+		return
+	}
+
+	snap, err := s.db.GetSnapshot(req.SnapshotID)
+	if err != nil {
+		httpErr(w, fmt.Errorf("snapshot no encontrado: %w", err), http.StatusNotFound)
+		return
+	}
+
+	job := &replication.Job{
+		ID:             generateID(),
+		SnapshotID:     snap.ID,
+		SnapshotPath:   snap.SnapshotPath,
+		ParentPath:     req.ParentPath,
+		TargetNodeID:   req.TargetNodeID,
+		TargetAddress:  req.TargetAddress,
+		TargetDestPath: req.TargetDestPath,
+		Status:         "pending",
+	}
+
+	s.replMgr.ReplicateAsync(job)
+	w.WriteHeader(http.StatusAccepted)
+	jsonResp(w, map[string]string{"job_id": job.ID, "status": "started"})
+}
+
+func (s *server) handleReplicationJobs(w http.ResponseWriter, r *http.Request) {
+	jobs := s.replMgr.ListJobs()
+	jsonResp(w, map[string]interface{}{"count": len(jobs), "jobs": jobs})
+}
+
 // ── main ─────────────────────────────────────────────────
 
 func main() {
@@ -404,6 +461,8 @@ func main() {
 	mux.HandleFunc("/api/snapshots/delete",  apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleDeleteSnapshot)))
 	mux.HandleFunc("/api/events",            apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleEvents)))
 	mux.HandleFunc("/api/policies",          apiLimiter.Middleware(srv.authMgr.Middleware(srv.handlePolicies)))
+	mux.HandleFunc("/api/replicate",         apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleReplicate)))
+	mux.HandleFunc("/api/replication/jobs",  apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleReplicationJobs)))
 
 	httpAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	httpServer := &http.Server{Addr: httpAddr, Handler: mux}
