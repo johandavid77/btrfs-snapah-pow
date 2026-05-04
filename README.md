@@ -86,11 +86,11 @@ GPL3 2026 Johan David
 - [ ] Indicador de estado de nodos online/offline
 
 ### v0.4.0 — Replicación
-- [ ] btrfs send/receive entre nodos
-- [ ] Políticas de replicación configurables
-- [ ] Replicación incremental (solo delta)
-- [ ] Estado y progreso de replicación en tiempo real
-- [ ] Retry automático en fallo de red
+- [x] btrfs send/receive entre nodos
+- [x] Políticas de replicación configurables
+- [x] Replicación incremental (solo delta)
+- [x] Estado y progreso de replicación en tiempo real
+- [x] Retry automático en fallo de red
 
 ### v0.5.0 — Observabilidad
 - [ ] Métricas Prometheus (/metrics)
