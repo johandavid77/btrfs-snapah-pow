@@ -72,10 +72,10 @@ GPL3 2026 Johan David
 
 ### v0.2.0 — Seguridad y autenticación
 - [x] JWT en endpoints HTTP
-- [ ] mTLS entre servidor y agentes
+- [x] mTLS entre servidor y agentes
 - [x] Validación real de tokens de registro
-- [ ] RBAC (roles: admin, operator, viewer)
-- [ ] Rate limiting en API
+- [x] RBAC (roles: admin, operator, viewer)
+- [x] Rate limiting en API
 
 ### v0.3.0 — Web UI
 - [ ] Dashboard con lista de nodos en tiempo real
