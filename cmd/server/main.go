@@ -13,11 +13,12 @@ import (
 	"time"
 
 	pb "github.com/johandavid77/btrfs-snapah-pow/api/proto"
-	"github.com/google/uuid"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/auth"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/btrfs"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/config"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/scheduler"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/storage"
+	"github.com/google/uuid"
 	"google.golang.org/grpc"
 )
 
@@ -29,19 +30,47 @@ type server struct {
 	db        *storage.DB
 	btrfs     *btrfs.Manager
 	scheduler *scheduler.Scheduler
+	authMgr   *auth.Manager
+	users     *auth.UserStore
 }
 
 func newServer(cfg *config.Config, db *storage.DB) *server {
 	btrfsMgr := btrfs.NewManager()
-	sched := scheduler.NewScheduler(btrfsMgr)
+	sched    := scheduler.NewScheduler(btrfsMgr)
+	authMgr  := auth.NewManager(cfg.Auth.JWTSecret, cfg.Auth.TokenExpiry)
+	users    := auth.NewUserStore()
+
+	adminPass := os.Getenv("SNAPAH_ADMIN_PASSWORD")
+	if adminPass == "" {
+		adminPass = "admin123"
+	}
+	users.Add(generateID(), "admin",    adminPass,    "admin")
+	users.Add(generateID(), "operator", "operator123", "operator")
 
 	return &server{
 		config:    cfg,
 		db:        db,
 		btrfs:     btrfsMgr,
 		scheduler: sched,
+		authMgr:   authMgr,
+		users:     users,
 	}
 }
+
+func generateID() string { return uuid.New().String() }
+
+func jsonResp(w http.ResponseWriter, v interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(v)
+}
+
+func httpErr(w http.ResponseWriter, err error, code int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+}
+
+// ── gRPC handlers ────────────────────────────────────────
 
 func (s *server) RegisterNode(ctx context.Context, req *pb.RegisterNodeRequest) (*pb.Node, error) {
 	node := &storage.Node{
@@ -51,17 +80,13 @@ func (s *server) RegisterNode(ctx context.Context, req *pb.RegisterNodeRequest) 
 		Status:   "online",
 		LastSeen: time.Now(),
 	}
-
 	if err := s.db.CreateNode(node); err != nil {
 		return nil, err
 	}
-
 	log.Printf("🖥️  Nodo registrado: %s (%s)", node.Hostname, node.ID)
 	return &pb.Node{
-		Id:       node.ID,
-		Hostname: node.Hostname,
-		Address:  node.Address,
-		Status:   node.Status,
+		Id: node.ID, Hostname: node.Hostname,
+		Address: node.Address, Status: node.Status,
 		LastSeen: node.LastSeen.Format(time.RFC3339),
 	}, nil
 }
@@ -71,14 +96,11 @@ func (s *server) ListNodes(ctx context.Context, req *pb.ListNodesRequest) (*pb.L
 	if err != nil {
 		return nil, err
 	}
-
 	var pbNodes []*pb.Node
 	for _, n := range nodes {
 		pbNodes = append(pbNodes, &pb.Node{
-			Id:       n.ID,
-			Hostname: n.Hostname,
-			Address:  n.Address,
-			Status:   n.Status,
+			Id: n.ID, Hostname: n.Hostname,
+			Address: n.Address, Status: n.Status,
 			LastSeen: n.LastSeen.Format(time.RFC3339),
 		})
 	}
@@ -87,33 +109,23 @@ func (s *server) ListNodes(ctx context.Context, req *pb.ListNodesRequest) (*pb.L
 
 func (s *server) CreateSnapshot(ctx context.Context, req *pb.CreateSnapshotRequest) (*pb.Snapshot, error) {
 	snapPath := btrfs.SnapshotPath(req.SubvolumePath, req.SnapshotName)
-
 	if err := s.btrfs.CreateSnapshot(req.SubvolumePath, snapPath, req.Readonly); err != nil {
 		return nil, err
 	}
-
 	snap := &storage.Snapshot{
-		ID:            generateID(),
-		NodeID:        req.NodeId,
-		SubvolumePath: req.SubvolumePath,
-		SnapshotPath:  snapPath,
-		IsReadOnly:    req.Readonly,
-		Status:        "active",
+		ID: generateID(), NodeID: req.NodeId,
+		SubvolumePath: req.SubvolumePath, SnapshotPath: snapPath,
+		IsReadOnly: req.Readonly, Status: "active",
 	}
-
 	if err := s.db.CreateSnapshot(snap); err != nil {
 		return nil, err
 	}
-
 	log.Printf("📸 Snapshot creado: %s", snapPath)
 	return &pb.Snapshot{
-		Id:           snap.ID,
-		NodeId:       snap.NodeID,
-		SnapshotPath: snap.SnapshotPath,
-		SubvolumePath: snap.SubvolumePath,
-		CreatedAt:    time.Now().Format(time.RFC3339),
-		IsReadonly:   snap.IsReadOnly,
-		Status:       snap.Status,
+		Id: snap.ID, NodeId: snap.NodeID,
+		SnapshotPath: snap.SnapshotPath, SubvolumePath: snap.SubvolumePath,
+		CreatedAt: time.Now().Format(time.RFC3339),
+		IsReadonly: snap.IsReadOnly, Status: snap.Status,
 	}, nil
 }
 
@@ -122,17 +134,13 @@ func (s *server) ListSnapshots(ctx context.Context, req *pb.ListSnapshotsRequest
 	if err != nil {
 		return nil, err
 	}
-
 	var pbSnaps []*pb.Snapshot
 	for _, snap := range snaps {
 		pbSnaps = append(pbSnaps, &pb.Snapshot{
-			Id:            snap.ID,
-			NodeId:        snap.NodeID,
-			SubvolumePath: snap.SubvolumePath,
-			SnapshotPath:  snap.SnapshotPath,
-			CreatedAt:     snap.CreatedAt.Format(time.RFC3339),
-			IsReadonly:    snap.IsReadOnly,
-			Status:        snap.Status,
+			Id: snap.ID, NodeId: snap.NodeID,
+			SubvolumePath: snap.SubvolumePath, SnapshotPath: snap.SnapshotPath,
+			CreatedAt: snap.CreatedAt.Format(time.RFC3339),
+			IsReadonly: snap.IsReadOnly, Status: snap.Status,
 		})
 	}
 	return &pb.ListSnapshotsResponse{Snapshots: pbSnaps}, nil
@@ -143,56 +151,38 @@ func (s *server) DeleteSnapshot(ctx context.Context, req *pb.DeleteSnapshotReque
 	if err != nil {
 		return &pb.DeleteSnapshotResponse{Success: false, Message: "snapshot not found"}, nil
 	}
-
 	if err := s.btrfs.DeleteSnapshot(snap.SnapshotPath); err != nil {
 		return &pb.DeleteSnapshotResponse{Success: false, Message: err.Error()}, nil
 	}
-
 	if err := s.db.DeleteSnapshot(req.SnapshotId); err != nil {
 		return &pb.DeleteSnapshotResponse{Success: false, Message: err.Error()}, nil
 	}
-
 	log.Printf("🗑️  Snapshot eliminado: %s", snap.SnapshotPath)
 	return &pb.DeleteSnapshotResponse{Success: true, Message: "deleted"}, nil
 }
 
 func (s *server) StreamEvents(req *pb.StreamEventsRequest, stream pb.SnapManager_StreamEventsServer) error {
-	event := &pb.Event{
-		Id:        generateID(),
-		Type:      "connection",
-		NodeId:    req.NodeId,
-		Message:   "Stream de eventos iniciado",
-		Timestamp: time.Now().Format(time.RFC3339),
-		Severity:  "info",
-	}
-	if err := stream.Send(event); err != nil {
-		return err
-	}
-
-	// Actualizar last_seen del nodo
+	stream.Send(&pb.Event{
+		Id: generateID(), Type: "connection", NodeId: req.NodeId,
+		Message: "Stream iniciado", Timestamp: time.Now().Format(time.RFC3339), Severity: "info",
+	})
 	if req.NodeId != "" {
 		s.db.UpdateNodeStatus(req.NodeId, "online")
 	}
-
 	for {
 		select {
 		case <-stream.Context().Done():
 			return nil
 		case <-time.After(10 * time.Second):
-			event := &pb.Event{
-				Id:        generateID(),
-				Type:      "heartbeat",
-				NodeId:    req.NodeId,
-				Message:   "ping",
-				Timestamp: time.Now().Format(time.RFC3339),
-				Severity:  "info",
-			}
-			if err := stream.Send(event); err != nil {
-				return err
-			}
+			stream.Send(&pb.Event{
+				Id: generateID(), Type: "heartbeat", NodeId: req.NodeId,
+				Message: "ping", Timestamp: time.Now().Format(time.RFC3339), Severity: "info",
+			})
 		}
 	}
 }
+
+// ── main ─────────────────────────────────────────────────
 
 func main() {
 	fmt.Println("🔥 Snapah Pow Server v" + appVersion)
@@ -202,10 +192,7 @@ func main() {
 		log.Fatalf("❌ Config error: %v", err)
 	}
 
-	// Crear directorio para DB si no existe
 	os.MkdirAll("data", 0755)
-
-	// Inicializar base de datos
 	db, err := storage.NewDB("data/snapah.db")
 	if err != nil {
 		log.Fatalf("❌ Database error: %v", err)
@@ -213,7 +200,7 @@ func main() {
 
 	srv := newServer(cfg, db)
 
-	// gRPC server
+	// ── gRPC ─────────────────────────────────────────────
 	grpcAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.GRPCPort)
 	grpcLis, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
@@ -221,37 +208,61 @@ func main() {
 	}
 	grpcServer := grpc.NewServer()
 	pb.RegisterSnapManagerServer(grpcServer, srv)
-
 	go func() {
-		log.Printf("🚀 gRPC server en %s", grpcAddr)
-		if err := grpcServer.Serve(grpcLis); err != nil {
-			log.Printf("gRPC error: %v", err)
-		}
+		log.Printf("🚀 gRPC en %s", grpcAddr)
+		grpcServer.Serve(grpcLis)
 	}()
 
-	// HTTP server
-	httpAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	httpMux := http.NewServeMux()
+	// ── HTTP ─────────────────────────────────────────────
+	mux := http.NewServeMux()
+	mux.Handle("/", http.FileServer(http.Dir("web")))
 
-	httpMux.Handle("/", http.FileServer(http.Dir("web")))
-
-	// ── Health ────────────────────────────────────────────
-	httpMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	// Health — público
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		jsonResp(w, map[string]string{"status": "ok", "version": appVersion})
 	})
 
-	// ── Nodes ─────────────────────────────────────────────
-	httpMux.HandleFunc("/api/nodes", func(w http.ResponseWriter, r *http.Request) {
+	// Login — público
+	mux.HandleFunc("/api/auth/login", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		var req struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			httpErr(w, err, http.StatusBadRequest)
+			return
+		}
+		user, err := srv.users.Authenticate(req.Username, req.Password)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			json.NewEncoder(w).Encode(map[string]string{"error": "credenciales invalidas"})
+			return
+		}
+		token, err := srv.authMgr.Generate(user.ID, user.Username, user.Role)
+		if err != nil {
+			httpErr(w, err, http.StatusInternalServerError)
+			return
+		}
+		jsonResp(w, map[string]string{"token": token, "username": user.Username, "role": user.Role})
+	})
+
+	// Nodes — protegido
+	mux.HandleFunc("/api/nodes", srv.authMgr.Middleware(func(w http.ResponseWriter, r *http.Request) {
 		nodes, err := db.ListNodes()
 		if err != nil {
 			httpErr(w, err, http.StatusInternalServerError)
 			return
 		}
 		jsonResp(w, map[string]interface{}{"count": len(nodes), "nodes": nodes})
-	})
+	}))
 
-	// ── Snapshots ─────────────────────────────────────────
-	httpMux.HandleFunc("/api/snapshots", func(w http.ResponseWriter, r *http.Request) {
+	// Snapshots — protegido
+	mux.HandleFunc("/api/snapshots", srv.authMgr.Middleware(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			nodeID := r.URL.Query().Get("node_id")
@@ -261,7 +272,6 @@ func main() {
 				return
 			}
 			jsonResp(w, map[string]interface{}{"count": len(snaps), "snapshots": snaps})
-
 		case http.MethodPost:
 			var req struct {
 				NodeID        string `json:"node_id"`
@@ -274,10 +284,8 @@ func main() {
 				return
 			}
 			resp, err := srv.CreateSnapshot(r.Context(), &pb.CreateSnapshotRequest{
-				NodeId:        req.NodeID,
-				SubvolumePath: req.SubvolumePath,
-				SnapshotName:  req.SnapshotName,
-				Readonly:      req.Readonly,
+				NodeId: req.NodeID, SubvolumePath: req.SubvolumePath,
+				SnapshotName: req.SnapshotName, Readonly: req.Readonly,
 			})
 			if err != nil {
 				httpErr(w, err, http.StatusInternalServerError)
@@ -285,13 +293,13 @@ func main() {
 			}
 			w.WriteHeader(http.StatusCreated)
 			jsonResp(w, resp)
-
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
-	})
+	}))
 
-	httpMux.HandleFunc("/api/snapshots/delete", func(w http.ResponseWriter, r *http.Request) {
+	// Delete snapshot — protegido
+	mux.HandleFunc("/api/snapshots/delete", srv.authMgr.Middleware(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			return
@@ -305,28 +313,27 @@ func main() {
 			return
 		}
 		resp, err := srv.DeleteSnapshot(r.Context(), &pb.DeleteSnapshotRequest{
-			SnapshotId: req.SnapshotID,
-			Force:      req.Force,
+			SnapshotId: req.SnapshotID, Force: req.Force,
 		})
 		if err != nil {
 			httpErr(w, err, http.StatusInternalServerError)
 			return
 		}
 		jsonResp(w, resp)
-	})
+	}))
 
-	// ── Events ────────────────────────────────────────────
-	httpMux.HandleFunc("/api/events", func(w http.ResponseWriter, r *http.Request) {
+	// Events — protegido
+	mux.HandleFunc("/api/events", srv.authMgr.Middleware(func(w http.ResponseWriter, r *http.Request) {
 		events, err := db.ListEvents(50)
 		if err != nil {
 			httpErr(w, err, http.StatusInternalServerError)
 			return
 		}
 		jsonResp(w, map[string]interface{}{"count": len(events), "events": events})
-	})
+	}))
 
-	// ── Policies ──────────────────────────────────────────
-	httpMux.HandleFunc("/api/policies", func(w http.ResponseWriter, r *http.Request) {
+	// Policies — protegido
+	mux.HandleFunc("/api/policies", srv.authMgr.Middleware(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			nodeID := r.URL.Query().Get("node_id")
@@ -336,7 +343,6 @@ func main() {
 				return
 			}
 			jsonResp(w, map[string]interface{}{"count": len(policies), "policies": policies})
-
 		case http.MethodPost:
 			var p storage.Policy
 			if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
@@ -348,67 +354,37 @@ func main() {
 				httpErr(w, err, http.StatusInternalServerError)
 				return
 			}
-			// Agregar al scheduler
 			srv.scheduler.AddPolicy(&scheduler.Policy{
-				ID:               p.ID,
-				Name:             p.Name,
-				NodeID:           p.NodeID,
-				SubvolumePath:    p.SubvolumePath,
-				Schedule:         p.Schedule,
-				RetentionHourly:  p.RetentionHourly,
-				RetentionDaily:   p.RetentionDaily,
-				RetentionWeekly:  p.RetentionWeekly,
-				RetentionMonthly: p.RetentionMonthly,
-				ReadOnly:         p.ReadOnly,
-				Replicate:        p.Replicate,
-				Enabled:          p.Enabled,
+				ID: p.ID, Name: p.Name, NodeID: p.NodeID,
+				SubvolumePath: p.SubvolumePath, Schedule: p.Schedule,
+				RetentionHourly: p.RetentionHourly, RetentionDaily: p.RetentionDaily,
+				RetentionWeekly: p.RetentionWeekly, RetentionMonthly: p.RetentionMonthly,
+				ReadOnly: p.ReadOnly, Replicate: p.Replicate, Enabled: p.Enabled,
 			})
 			w.WriteHeader(http.StatusCreated)
 			jsonResp(w, p)
-
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 		}
-	})
+	}))
 
-	httpServer := &http.Server{
-		Addr:    httpAddr,
-		Handler: httpMux,
-	}
-
+	httpAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+	httpServer := &http.Server{Addr: httpAddr, Handler: mux}
 	go func() {
-		log.Printf("🌐 HTTP API en http://%s", httpAddr)
+		log.Printf("🌐 HTTP en http://%s", httpAddr)
 		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Printf("HTTP error: %v", err)
 		}
 	}()
 
-	// Graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
 
-	log.Println("👋 Shutdown iniciado...")
+	log.Println("👋 Shutdown...")
 	grpcServer.GracefulStop()
-
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	httpServer.Shutdown(shutdownCtx)
-
+	httpServer.Shutdown(ctx)
 	log.Println("👋 Server detenido")
-}
-
-func generateID() string {
-	return uuid.New().String()
-}
-
-func jsonResp(w http.ResponseWriter, v interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(v)
-}
-
-func httpErr(w http.ResponseWriter, err error, code int) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 }

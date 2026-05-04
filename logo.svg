@@ -1,0 +1,44 @@
+<svg width="100%" viewBox="0 0 680 420" role="img">
+<title>BTRFS Snapah Pow logo final</title>
+<desc>Logo final con colores jamaiquinos: verde, amarillo y rojo. Capas de snapshots y rayo de poder.</desc>
+
+<style>
+  .logo-text { font-family: monospace; font-weight: 500; fill: #1a1a1a; }
+  .logo-sub  { font-family: monospace; font-weight: 400; fill: #555; letter-spacing: 4px; }
+  @media (prefers-color-scheme: dark) {
+    .logo-text { fill: #f0f0f0; }
+    .logo-sub  { fill: #999; }
+  }
+</style>
+
+<!-- Capa 3 - rojo (más atrás) -->
+<rect x="188" y="178" width="134" height="72" rx="6" fill="#8b1a1a" opacity="0.6"/>
+<!-- Capa 2 - verde -->
+<rect x="202" y="160" width="134" height="72" rx="6" fill="#1a7a38" opacity="0.8"/>
+<!-- Capa 1 - verde vivo (frente) -->
+<rect x="216" y="142" width="134" height="72" rx="6" fill="#22a64a"/>
+
+<!-- Líneas de datos en capa frontal -->
+<line x1="232" y1="162" x2="334" y2="162" stroke="#7ef5a8" stroke-width="2" stroke-linecap="round"/>
+<line x1="232" y1="174" x2="314" y2="174" stroke="#7ef5a8" stroke-width="2" stroke-linecap="round" opacity="0.7"/>
+<line x1="232" y1="186" x2="324" y2="186" stroke="#7ef5a8" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+
+<!-- Sombra roja del rayo -->
+<polygon points="316,90 288,152 310,152 280,218 342,136 317,136" fill="#c0392b" opacity="0.5"/>
+<!-- Rayo principal amarillo -->
+<polygon points="312,86 284,148 306,148 276,214 338,132 313,132" fill="#f5c800"/>
+
+<!-- Texto snapah -->
+<text x="374" y="160" class="logo-text" font-size="44">snapah</text>
+<!-- pow en amarillo -->
+<text x="374" y="208" font-family="monospace" font-weight="500" font-size="44" fill="#f5c800">pow</text>
+
+<!-- Subtítulo -->
+<text x="374" y="238" class="logo-sub" font-size="10">BTRFS SNAPSHOT MANAGER</text>
+
+<!-- Tres barras jamaiquinas -->
+<rect x="374" y="252" width="220" height="3" rx="1" fill="#e8360a"/>
+<rect x="374" y="258" width="220" height="3" rx="1" fill="#f5c800"/>
+<rect x="374" y="264" width="220" height="3" rx="1" fill="#22a64a"/>
+
+</svg>
