@@ -13,6 +13,7 @@ import (
 	"github.com/johandavid77/btrfs-snapah-pow/internal/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/tlsconfig"
 )
 
 var appVersion = "dev"
@@ -48,9 +49,20 @@ func main() {
 
 	log.Printf("🔌 Conectando a servidor: %s", serverAddr)
 
-	conn, err := grpc.NewClient(serverAddr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-	)
+	var conn *grpc.ClientConn
+	if cfg != nil && tlsconfig.CertsExist(cfg.Agent.TLSCert, cfg.Agent.TLSKey, cfg.Agent.TLSCACert) {
+		creds, tlsErr := tlsconfig.ClientTLS(cfg.Agent.TLSCert, cfg.Agent.TLSKey, cfg.Agent.TLSCACert)
+		if tlsErr != nil {
+			log.Printf("⚠️  mTLS no disponible: %v - usando insecure", tlsErr)
+			conn, err = grpc.NewClient(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		} else {
+			conn, err = grpc.NewClient(serverAddr, grpc.WithTransportCredentials(creds))
+			log.Println("🔐 Conectado con mTLS")
+		}
+	} else {
+		conn, err = grpc.NewClient(serverAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		log.Println("⚠️  Conectado sin TLS (desarrollo)")
+	}
 	if err != nil {
 		log.Fatalf("❌ No pudo conectar: %v", err)
 	}

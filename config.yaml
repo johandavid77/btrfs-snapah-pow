@@ -3,6 +3,9 @@ server:
   port: 8081
   grpc_port: 9090
   tls_enabled: false
+  tls_cert: "certs/server.crt"
+  tls_key: "certs/server.key"
+  tls_ca_cert: "certs/ca.crt"
 
 database:
   driver: "sqlite"
@@ -12,6 +15,9 @@ auth:
   jwt_secret: "cambia-esto-en-produccion"
   token_expiry_hours: 24
   mtls_enabled: false
+  tls_cert: "certs/server.crt"
+  tls_key: "certs/server.key"
+  tls_ca_cert: "certs/ca.crt"
 
 btrfs:
   default_snapshot_dir: ".snapshots"
@@ -20,3 +26,6 @@ btrfs:
 agent:
   server_address: "localhost:9090"
   heartbeat_seconds: 30
+  tls_cert: "certs/agent.crt"
+  tls_key: "certs/agent.key"
+  tls_ca_cert: "certs/ca.crt"

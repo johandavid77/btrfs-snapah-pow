@@ -21,6 +21,7 @@ type ServerConfig struct {
 	TLSEnabled bool   `mapstructure:"tls_enabled"`
 	TLSCert    string `mapstructure:"tls_cert"`
 	TLSKey     string `mapstructure:"tls_key"`
+	TLSCACert  string `mapstructure:"tls_ca_cert"`
 }
 
 type DatabaseConfig struct {
@@ -48,6 +49,9 @@ type AgentConfig struct {
 	NodeID        string `mapstructure:"node_id"`
 	Token         string `mapstructure:"token"`
 	HeartbeatSec  int    `mapstructure:"heartbeat_seconds"`
+	TLSCert       string `mapstructure:"tls_cert"`
+	TLSKey        string `mapstructure:"tls_key"`
+	TLSCACert     string `mapstructure:"tls_ca_cert"`
 }
 
 func Load(path string) (*Config, error) {

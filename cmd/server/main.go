@@ -16,8 +16,10 @@ import (
 	"github.com/johandavid77/btrfs-snapah-pow/internal/auth"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/btrfs"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/config"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/ratelimit"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/scheduler"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/storage"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/tlsconfig"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 )
@@ -48,12 +50,8 @@ func newServer(cfg *config.Config, db *storage.DB) *server {
 	users.Add(generateID(), "operator", "operator123", "operator")
 
 	return &server{
-		config:    cfg,
-		db:        db,
-		btrfs:     btrfsMgr,
-		scheduler: sched,
-		authMgr:   authMgr,
-		users:     users,
+		config: cfg, db: db, btrfs: btrfsMgr,
+		scheduler: sched, authMgr: authMgr, users: users,
 	}
 }
 
@@ -70,15 +68,18 @@ func httpErr(w http.ResponseWriter, err error, code int) {
 	json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 }
 
+func forbidden(w http.ResponseWriter, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	json.NewEncoder(w).Encode(map[string]string{"error": msg})
+}
+
 // ── gRPC handlers ────────────────────────────────────────
 
 func (s *server) RegisterNode(ctx context.Context, req *pb.RegisterNodeRequest) (*pb.Node, error) {
 	node := &storage.Node{
-		ID:       generateID(),
-		Hostname: req.Hostname,
-		Address:  req.Address,
-		Status:   "online",
-		LastSeen: time.Now(),
+		ID: generateID(), Hostname: req.Hostname,
+		Address: req.Address, Status: "online", LastSeen: time.Now(),
 	}
 	if err := s.db.CreateNode(node); err != nil {
 		return nil, err
@@ -154,9 +155,7 @@ func (s *server) DeleteSnapshot(ctx context.Context, req *pb.DeleteSnapshotReque
 	if err := s.btrfs.DeleteSnapshot(snap.SnapshotPath); err != nil {
 		return &pb.DeleteSnapshotResponse{Success: false, Message: err.Error()}, nil
 	}
-	if err := s.db.DeleteSnapshot(req.SnapshotId); err != nil {
-		return &pb.DeleteSnapshotResponse{Success: false, Message: err.Error()}, nil
-	}
+	s.db.DeleteSnapshot(req.SnapshotId)
 	log.Printf("🗑️  Snapshot eliminado: %s", snap.SnapshotPath)
 	return &pb.DeleteSnapshotResponse{Success: true, Message: "deleted"}, nil
 }
@@ -182,6 +181,163 @@ func (s *server) StreamEvents(req *pb.StreamEventsRequest, stream pb.SnapManager
 	}
 }
 
+// ── HTTP handlers ─────────────────────────────────────────
+
+func (s *server) handleLogin(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpErr(w, err, http.StatusBadRequest)
+		return
+	}
+	user, err := s.users.Authenticate(req.Username, req.Password)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "credenciales invalidas"})
+		return
+	}
+	token, err := s.authMgr.Generate(user.ID, user.Username, user.Role)
+	if err != nil {
+		httpErr(w, err, http.StatusInternalServerError)
+		return
+	}
+	jsonResp(w, map[string]string{"token": token, "username": user.Username, "role": user.Role})
+}
+
+func (s *server) handleNodes(w http.ResponseWriter, r *http.Request) {
+	nodes, err := s.db.ListNodes()
+	if err != nil {
+		httpErr(w, err, http.StatusInternalServerError)
+		return
+	}
+	jsonResp(w, map[string]interface{}{"count": len(nodes), "nodes": nodes})
+}
+
+func (s *server) handleSnapshots(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		nodeID := r.URL.Query().Get("node_id")
+		snaps, err := s.db.ListSnapshots(nodeID)
+		if err != nil {
+			httpErr(w, err, http.StatusInternalServerError)
+			return
+		}
+		jsonResp(w, map[string]interface{}{"count": len(snaps), "snapshots": snaps})
+
+	case http.MethodPost:
+		var req struct {
+			NodeID        string `json:"node_id"`
+			SubvolumePath string `json:"subvolume_path"`
+			SnapshotName  string `json:"snapshot_name"`
+			Readonly      bool   `json:"readonly"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			httpErr(w, err, http.StatusBadRequest)
+			return
+		}
+		resp, err := s.CreateSnapshot(r.Context(), &pb.CreateSnapshotRequest{
+			NodeId: req.NodeID, SubvolumePath: req.SubvolumePath,
+			SnapshotName: req.SnapshotName, Readonly: req.Readonly,
+		})
+		if err != nil {
+			httpErr(w, err, http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		jsonResp(w, resp)
+
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+func (s *server) handleDeleteSnapshot(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	// RBAC: solo admin u operator
+	role := r.Header.Get("X-User-Role")
+	if role != "admin" && role != "operator" {
+		forbidden(w, "permisos insuficientes para eliminar snapshots")
+		return
+	}
+	var req struct {
+		SnapshotID string `json:"snapshot_id"`
+		Force      bool   `json:"force"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpErr(w, err, http.StatusBadRequest)
+		return
+	}
+	resp, err := s.DeleteSnapshot(r.Context(), &pb.DeleteSnapshotRequest{
+		SnapshotId: req.SnapshotID, Force: req.Force,
+	})
+	if err != nil {
+		httpErr(w, err, http.StatusInternalServerError)
+		return
+	}
+	jsonResp(w, resp)
+}
+
+func (s *server) handleEvents(w http.ResponseWriter, r *http.Request) {
+	events, err := s.db.ListEvents(50)
+	if err != nil {
+		httpErr(w, err, http.StatusInternalServerError)
+		return
+	}
+	jsonResp(w, map[string]interface{}{"count": len(events), "events": events})
+}
+
+func (s *server) handlePolicies(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		nodeID := r.URL.Query().Get("node_id")
+		policies, err := s.db.ListPolicies(nodeID)
+		if err != nil {
+			httpErr(w, err, http.StatusInternalServerError)
+			return
+		}
+		jsonResp(w, map[string]interface{}{"count": len(policies), "policies": policies})
+
+	case http.MethodPost:
+		// RBAC: solo admin
+		if r.Header.Get("X-User-Role") != "admin" {
+			forbidden(w, "solo admin puede crear politicas")
+			return
+		}
+		var p storage.Policy
+		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
+			httpErr(w, err, http.StatusBadRequest)
+			return
+		}
+		p.ID = generateID()
+		if err := s.db.CreatePolicy(&p); err != nil {
+			httpErr(w, err, http.StatusInternalServerError)
+			return
+		}
+		s.scheduler.AddPolicy(&scheduler.Policy{
+			ID: p.ID, Name: p.Name, NodeID: p.NodeID,
+			SubvolumePath: p.SubvolumePath, Schedule: p.Schedule,
+			RetentionHourly: p.RetentionHourly, RetentionDaily: p.RetentionDaily,
+			RetentionWeekly: p.RetentionWeekly, RetentionMonthly: p.RetentionMonthly,
+			ReadOnly: p.ReadOnly, Replicate: p.Replicate, Enabled: p.Enabled,
+		})
+		w.WriteHeader(http.StatusCreated)
+		jsonResp(w, p)
+
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
 // ── main ─────────────────────────────────────────────────
 
 func main() {
@@ -200,13 +356,30 @@ func main() {
 
 	srv := newServer(cfg, db)
 
+	// ── Rate limiters ─────────────────────────────────────
+	loginLimiter := ratelimit.New(10, time.Minute)
+	apiLimiter   := ratelimit.New(200, time.Minute)
+
 	// ── gRPC ─────────────────────────────────────────────
 	grpcAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.GRPCPort)
 	grpcLis, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
-		log.Fatalf("❌ gRPC listen failed: %v", err)
+		log.Fatalf("❌ gRPC listen: %v", err)
 	}
-	grpcServer := grpc.NewServer()
+
+	var grpcServer *grpc.Server
+	if cfg.Server.TLSEnabled && tlsconfig.CertsExist(cfg.Server.TLSCert, cfg.Server.TLSKey, cfg.Server.TLSCACert) {
+		creds, err := tlsconfig.ServerTLS(cfg.Server.TLSCert, cfg.Server.TLSKey, cfg.Server.TLSCACert)
+		if err != nil {
+			log.Fatalf("❌ mTLS: %v", err)
+		}
+		grpcServer = grpc.NewServer(grpc.Creds(creds))
+		log.Println("🔐 gRPC con mTLS")
+	} else {
+		grpcServer = grpc.NewServer()
+		log.Println("⚠️  gRPC sin TLS (desarrollo)")
+	}
+
 	pb.RegisterSnapManagerServer(grpcServer, srv)
 	go func() {
 		log.Printf("🚀 gRPC en %s", grpcAddr)
@@ -217,156 +390,20 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/", http.FileServer(http.Dir("web")))
 
-	// Health — público
+	// Público
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		jsonResp(w, map[string]string{"status": "ok", "version": appVersion})
 	})
 
-	// Login — público
-	mux.HandleFunc("/api/auth/login", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		var req struct {
-			Username string `json:"username"`
-			Password string `json:"password"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			httpErr(w, err, http.StatusBadRequest)
-			return
-		}
-		user, err := srv.users.Authenticate(req.Username, req.Password)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized)
-			json.NewEncoder(w).Encode(map[string]string{"error": "credenciales invalidas"})
-			return
-		}
-		token, err := srv.authMgr.Generate(user.ID, user.Username, user.Role)
-		if err != nil {
-			httpErr(w, err, http.StatusInternalServerError)
-			return
-		}
-		jsonResp(w, map[string]string{"token": token, "username": user.Username, "role": user.Role})
-	})
+	// Auth — rate limit estricto
+	mux.HandleFunc("/api/auth/login", loginLimiter.Middleware(srv.handleLogin))
 
-	// Nodes — protegido
-	mux.HandleFunc("/api/nodes", srv.authMgr.Middleware(func(w http.ResponseWriter, r *http.Request) {
-		nodes, err := db.ListNodes()
-		if err != nil {
-			httpErr(w, err, http.StatusInternalServerError)
-			return
-		}
-		jsonResp(w, map[string]interface{}{"count": len(nodes), "nodes": nodes})
-	}))
-
-	// Snapshots — protegido
-	mux.HandleFunc("/api/snapshots", srv.authMgr.Middleware(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			nodeID := r.URL.Query().Get("node_id")
-			snaps, err := db.ListSnapshots(nodeID)
-			if err != nil {
-				httpErr(w, err, http.StatusInternalServerError)
-				return
-			}
-			jsonResp(w, map[string]interface{}{"count": len(snaps), "snapshots": snaps})
-		case http.MethodPost:
-			var req struct {
-				NodeID        string `json:"node_id"`
-				SubvolumePath string `json:"subvolume_path"`
-				SnapshotName  string `json:"snapshot_name"`
-				Readonly      bool   `json:"readonly"`
-			}
-			if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-				httpErr(w, err, http.StatusBadRequest)
-				return
-			}
-			resp, err := srv.CreateSnapshot(r.Context(), &pb.CreateSnapshotRequest{
-				NodeId: req.NodeID, SubvolumePath: req.SubvolumePath,
-				SnapshotName: req.SnapshotName, Readonly: req.Readonly,
-			})
-			if err != nil {
-				httpErr(w, err, http.StatusInternalServerError)
-				return
-			}
-			w.WriteHeader(http.StatusCreated)
-			jsonResp(w, resp)
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
-		}
-	}))
-
-	// Delete snapshot — protegido
-	mux.HandleFunc("/api/snapshots/delete", srv.authMgr.Middleware(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		var req struct {
-			SnapshotID string `json:"snapshot_id"`
-			Force      bool   `json:"force"`
-		}
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			httpErr(w, err, http.StatusBadRequest)
-			return
-		}
-		resp, err := srv.DeleteSnapshot(r.Context(), &pb.DeleteSnapshotRequest{
-			SnapshotId: req.SnapshotID, Force: req.Force,
-		})
-		if err != nil {
-			httpErr(w, err, http.StatusInternalServerError)
-			return
-		}
-		jsonResp(w, resp)
-	}))
-
-	// Events — protegido
-	mux.HandleFunc("/api/events", srv.authMgr.Middleware(func(w http.ResponseWriter, r *http.Request) {
-		events, err := db.ListEvents(50)
-		if err != nil {
-			httpErr(w, err, http.StatusInternalServerError)
-			return
-		}
-		jsonResp(w, map[string]interface{}{"count": len(events), "events": events})
-	}))
-
-	// Policies — protegido
-	mux.HandleFunc("/api/policies", srv.authMgr.Middleware(func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			nodeID := r.URL.Query().Get("node_id")
-			policies, err := db.ListPolicies(nodeID)
-			if err != nil {
-				httpErr(w, err, http.StatusInternalServerError)
-				return
-			}
-			jsonResp(w, map[string]interface{}{"count": len(policies), "policies": policies})
-		case http.MethodPost:
-			var p storage.Policy
-			if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-				httpErr(w, err, http.StatusBadRequest)
-				return
-			}
-			p.ID = generateID()
-			if err := db.CreatePolicy(&p); err != nil {
-				httpErr(w, err, http.StatusInternalServerError)
-				return
-			}
-			srv.scheduler.AddPolicy(&scheduler.Policy{
-				ID: p.ID, Name: p.Name, NodeID: p.NodeID,
-				SubvolumePath: p.SubvolumePath, Schedule: p.Schedule,
-				RetentionHourly: p.RetentionHourly, RetentionDaily: p.RetentionDaily,
-				RetentionWeekly: p.RetentionWeekly, RetentionMonthly: p.RetentionMonthly,
-				ReadOnly: p.ReadOnly, Replicate: p.Replicate, Enabled: p.Enabled,
-			})
-			w.WriteHeader(http.StatusCreated)
-			jsonResp(w, p)
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
-		}
-	}))
+	// API — rate limit + JWT
+	mux.HandleFunc("/api/nodes",             apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleNodes)))
+	mux.HandleFunc("/api/snapshots",         apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleSnapshots)))
+	mux.HandleFunc("/api/snapshots/delete",  apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleDeleteSnapshot)))
+	mux.HandleFunc("/api/events",            apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleEvents)))
+	mux.HandleFunc("/api/policies",          apiLimiter.Middleware(srv.authMgr.Middleware(srv.handlePolicies)))
 
 	httpAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	httpServer := &http.Server{Addr: httpAddr, Handler: mux}
@@ -386,5 +423,5 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	httpServer.Shutdown(ctx)
-	log.Println("👋 Server detenido")
+	log.Println("✅ Server detenido")
 }
