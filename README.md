@@ -71,9 +71,9 @@ GPL3 2026 Johan David
 - [x] IDs con UUID (sin colisiones)
 
 ### v0.2.0 — Seguridad y autenticación
-- [ ] JWT en endpoints HTTP
+- [x] JWT en endpoints HTTP
 - [ ] mTLS entre servidor y agentes
-- [ ] Validación real de tokens de registro
+- [x] Validación real de tokens de registro
 - [ ] RBAC (roles: admin, operator, viewer)
 - [ ] Rate limiting en API
 
