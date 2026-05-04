@@ -1,43 +1,622 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>🔥 Btrfs Snapah Pow</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background: linear-gradient(135deg, #1e1b4b, #312e81); font-family: sans-serif; color: white; }
-        .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Btrfs Snapah Pow</title>
+<style>
+  :root {
+    --bg:       #0d0d1a;
+    --surface:  #13132a;
+    --card:     #1a1a35;
+    --border:   #2a2a4a;
+    --green:    #22a64a;
+    --yellow:   #f5c800;
+    --red:      #e8360a;
+    --text:     #e8e8f0;
+    --muted:    #7878a0;
+    --radius:   10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
+
+  /* ── Login ── */
+  #login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: var(--bg);
+  }
+  .login-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 48px 40px; width: 360px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+  .login-logo { text-align: center; margin-bottom: 32px; }
+  .login-logo h1 { font-size: 28px; font-weight: 700; }
+  .login-logo span { color: var(--yellow); }
+  .login-logo p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .login-bars { display: flex; gap: 4px; justify-content: center; margin-top: 8px; }
+  .login-bars span { height: 4px; width: 40px; border-radius: 2px; }
+  input {
+    width: 100%; padding: 12px 14px; margin-bottom: 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); color: var(--text); font-size: 14px;
+    outline: none; transition: border 0.2s;
+  }
+  input:focus { border-color: var(--green); }
+  .btn {
+    width: 100%; padding: 12px; background: var(--green); color: #fff;
+    border: none; border-radius: var(--radius); font-size: 15px;
+    font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-danger { background: var(--red); }
+  .btn-sm {
+    padding: 6px 14px; font-size: 12px; width: auto;
+    border-radius: 6px; font-weight: 600;
+  }
+  .error-msg { color: var(--red); font-size: 13px; margin-top: 10px; text-align: center; }
+
+  /* ── App ── */
+  #app { display: none; }
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 32px; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { font-size: 18px; font-weight: 700; }
+  .logo span { color: var(--yellow); }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .user-badge {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 14px; font-size: 13px; color: var(--muted);
+  }
+  .user-badge b { color: var(--text); }
+  .logout-btn {
+    background: none; border: 1px solid var(--border); color: var(--muted);
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    transition: all 0.2s;
+  }
+  .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
+  /* ── Nav tabs ── */
+  nav {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 0 32px; display: flex; gap: 4px;
+  }
+  .tab {
+    padding: 14px 20px; font-size: 14px; color: var(--muted);
+    cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all 0.2s; user-select: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+  main { padding: 32px; max-width: 1200px; }
+
+  /* ── Stats grid ── */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 28px; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 24px;
+  }
+  .stat-card .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .stat-card .value { font-size: 32px; font-weight: 700; }
+  .stat-card .value.green { color: var(--green); }
+  .stat-card .value.yellow { color: var(--yellow); }
+  .stat-card .value.red { color: var(--red); }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px; margin-bottom: 20px;
+  }
+  .card-title { font-size: 15px; font-weight: 600; margin-bottom: 18px; display: flex; align-items: center; justify-content: space-between; }
+
+  /* ── Table ── */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .empty { color: var(--muted); text-align: center; padding: 32px; font-size: 13px; }
+
+  /* ── Badges ── */
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+  }
+  .badge-green { background: rgba(34,166,74,0.15); color: var(--green); }
+  .badge-red   { background: rgba(232,54,10,0.15); color: var(--red); }
+  .badge-yellow{ background: rgba(245,200,0,0.15); color: var(--yellow); }
+  .badge-gray  { background: rgba(120,120,160,0.15); color: var(--muted); }
+
+  /* ── Form ── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: 12px; color: var(--muted); }
+  .form-group input, .form-group select {
+    margin-bottom: 0; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); padding: 10px 12px; font-size: 13px; outline: none;
+  }
+  .form-group input:focus, .form-group select:focus { border-color: var(--green); }
+  select option { background: var(--surface); }
+  .form-actions { margin-top: 16px; display: flex; gap: 10px; }
+
+  /* ── Status dot ── */
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-red   { background: var(--red); }
+  .dot-gray  { background: var(--muted); }
+
+  /* ── Events ── */
+  .event-item { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 13px; display: flex; gap: 12px; }
+  .event-time { color: var(--muted); min-width: 140px; font-family: monospace; }
+  .event-msg { flex: 1; }
+
+  /* ── Jamaican accent bar ── */
+  .accent-bar { height: 3px; display: flex; border-radius: 2px; overflow: hidden; margin-bottom: 28px; }
+  .accent-bar span:nth-child(1) { flex: 1; background: var(--red); }
+  .accent-bar span:nth-child(2) { flex: 1; background: var(--yellow); }
+  .accent-bar span:nth-child(3) { flex: 1; background: var(--green); }
+
+  .hidden { display: none !important; }
+</style>
 </head>
-<body class="min-h-screen p-6">
-    <div class="container mx-auto">
-        <h1 class="text-3xl font-bold mb-6">🔥 Btrfs Snapah Pow</h1>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="card"><h3 class="text-gray-400">Nodos</h3><p class="text-2xl font-bold" id="nodes">0</p></div>
-            <div class="card"><h3 class="text-gray-400">Snapshots</h3><p class="text-2xl font-bold" id="snaps">0</p></div>
-            <div class="card"><h3 class="text-gray-400">Status</h3><p class="text-green-400 font-bold">🟢 Online</p></div>
-        </div>
-        <div class="card">
-            <h2 class="text-lg font-semibold mb-4">Snapshots</h2>
-            <div id="snapshot-list">Cargando...</div>
-        </div>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">
+      <h1>snapah <span>pow</span></h1>
+      <p>BTRFS Snapshot Manager</p>
+      <div class="login-bars">
+        <span style="background:#e8360a"></span>
+        <span style="background:#f5c800"></span>
+        <span style="background:#22a64a"></span>
+      </div>
     </div>
-    <script>
-        async function load() {
-            try {
-                const nodes = await fetch('http://localhost:8081/api/nodes').then(r => r.json());
-                const snaps = await fetch('http://localhost:8081/api/snapshots').then(r => r.json());
-                document.getElementById('nodes').textContent = nodes.count || 0;
-                document.getElementById('snaps').textContent = snaps.count || 0;
-                document.getElementById('snapshot-list').innerHTML = (snaps.snapshots || []).map(s => 
-                    `<div class="p-2 bg-white/5 rounded mb-2">${s.snapshot_path || s.id}</div>`
-                ).join('') || 'No hay snapshots';
-            } catch(e) {
-                document.getElementById('snapshot-list').innerHTML = '<span class="text-red-400">Error de conexión</span>';
-            }
-        }
-        load();
-        setInterval(load, 5000);
-    </script>
+    <input type="text" id="username" placeholder="Usuario" autocomplete="username">
+    <input type="password" id="password" placeholder="Contraseña" autocomplete="current-password">
+    <button class="btn" onclick="login()">Entrar</button>
+    <div id="login-error" class="error-msg hidden"></div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div id="app">
+  <header>
+    <div class="logo">snapah <span>pow</span></div>
+    <div class="header-right">
+      <div class="user-badge">👤 <b id="header-user"></b> · <span id="header-role"></span></div>
+      <button class="logout-btn" onclick="logout()">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <nav>
+    <div class="tab active" onclick="showTab('dashboard')">📊 Dashboard</div>
+    <div class="tab" onclick="showTab('snapshots')">📸 Snapshots</div>
+    <div class="tab" onclick="showTab('nodes')">🖥️ Nodos</div>
+    <div class="tab" onclick="showTab('policies')">📅 Políticas</div>
+    <div class="tab" onclick="showTab('events')">📋 Eventos</div>
+  </nav>
+
+  <main>
+    <!-- Dashboard -->
+    <div id="tab-dashboard">
+      <div class="accent-bar"><span></span><span></span><span></span></div>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="label">Nodos</div>
+          <div class="value green" id="stat-nodes">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Snapshots</div>
+          <div class="value yellow" id="stat-snaps">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Políticas activas</div>
+          <div class="value" id="stat-policies">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Estado servidor</div>
+          <div class="value green" style="font-size:18px">
+            <span class="dot dot-green"></span>Online
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Nodos registrados</div>
+        <div id="dash-nodes-list"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Snapshots recientes</div>
+        <div id="dash-snaps-list"></div>
+      </div>
+    </div>
+
+    <!-- Snapshots -->
+    <div id="tab-snapshots" class="hidden">
+      <div class="card">
+        <div class="card-title">
+          Crear snapshot
+        </div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nodo ID</label>
+            <input id="snap-node" placeholder="uuid del nodo">
+          </div>
+          <div class="form-group">
+            <label>Nombre</label>
+            <input id="snap-name" placeholder="mi-backup">
+          </div>
+          <div class="form-group">
+            <label>Ruta subvolumen</label>
+            <input id="snap-path" placeholder="/mnt/datos">
+          </div>
+          <div class="form-group">
+            <label>Solo lectura</label>
+            <select id="snap-ro">
+              <option value="true">Sí (recomendado)</option>
+              <option value="false">No</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-sm" onclick="createSnapshot()">📸 Crear snapshot</button>
+        </div>
+        <div id="snap-msg" style="margin-top:10px;font-size:13px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>Todos los snapshots</span>
+          <button class="btn btn-sm" onclick="loadSnapshots()">↻ Actualizar</button>
+        </div>
+        <div id="snaps-table"></div>
+      </div>
+    </div>
+
+    <!-- Nodos -->
+    <div id="tab-nodes" class="hidden">
+      <div class="card">
+        <div class="card-title">
+          <span>Nodos registrados</span>
+          <button class="btn btn-sm" onclick="loadNodes()">↻ Actualizar</button>
+        </div>
+        <div id="nodes-table"></div>
+      </div>
+    </div>
+
+    <!-- Políticas -->
+    <div id="tab-policies" class="hidden">
+      <div class="card">
+        <div class="card-title">Nueva política de snapshot</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre</label>
+            <input id="pol-name" placeholder="diario-produccion">
+          </div>
+          <div class="form-group">
+            <label>Nodo ID</label>
+            <input id="pol-node" placeholder="uuid del nodo">
+          </div>
+          <div class="form-group">
+            <label>Ruta subvolumen</label>
+            <input id="pol-path" placeholder="/mnt/datos">
+          </div>
+          <div class="form-group">
+            <label>Schedule (cron)</label>
+            <input id="pol-schedule" placeholder="0 2 * * *" value="0 2 * * *">
+          </div>
+          <div class="form-group">
+            <label>Retención diaria</label>
+            <input id="pol-daily" type="number" value="7" min="1">
+          </div>
+          <div class="form-group">
+            <label>Retención semanal</label>
+            <input id="pol-weekly" type="number" value="4" min="1">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-sm" onclick="createPolicy()">📅 Crear política</button>
+        </div>
+        <div id="pol-msg" style="margin-top:10px;font-size:13px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>Políticas activas</span>
+          <button class="btn btn-sm" onclick="loadPolicies()">↻ Actualizar</button>
+        </div>
+        <div id="policies-table"></div>
+      </div>
+    </div>
+
+    <!-- Eventos -->
+    <div id="tab-events" class="hidden">
+      <div class="card">
+        <div class="card-title">
+          <span>Eventos recientes</span>
+          <button class="btn btn-sm" onclick="loadEvents()">↻ Actualizar</button>
+        </div>
+        <div id="events-list"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('snapah_token') || '';
+let currentUser = JSON.parse(localStorage.getItem('snapah_user') || '{}');
+
+// ── Auth ──────────────────────────────────────────────────
+async function login() {
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value;
+  const err = document.getElementById('login-error');
+  err.classList.add('hidden');
+  try {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({username: u, password: p})
+    });
+    const data = await r.json();
+    if (!r.ok) { err.textContent = data.error || 'Error de login'; err.classList.remove('hidden'); return; }
+    token = data.token;
+    currentUser = {username: data.username, role: data.role};
+    localStorage.setItem('snapah_token', token);
+    localStorage.setItem('snapah_user', JSON.stringify(currentUser));
+    showApp();
+  } catch(e) {
+    err.textContent = 'No se pudo conectar al servidor';
+    err.classList.remove('hidden');
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !document.getElementById('login-screen').classList.contains('hidden')) login();
+});
+
+function logout() {
+  token = ''; currentUser = {};
+  localStorage.removeItem('snapah_token');
+  localStorage.removeItem('snapah_user');
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('header-user').textContent = currentUser.username;
+  document.getElementById('header-role').textContent = currentUser.role;
+  loadDashboard();
+}
+
+// ── API helper ────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const r = await fetch(path, {
+    ...opts,
+    headers: {'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json', ...(opts.headers||{})}
+  });
+  if (r.status === 401) { logout(); return null; }
+  return r.json();
+}
+
+// ── Tabs ──────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.remove('hidden');
+  event.target.classList.add('active');
+  if (name === 'dashboard')  loadDashboard();
+  if (name === 'snapshots')  loadSnapshots();
+  if (name === 'nodes')      loadNodes();
+  if (name === 'policies')   loadPolicies();
+  if (name === 'events')     loadEvents();
+}
+
+// ── Dashboard ─────────────────────────────────────────────
+async function loadDashboard() {
+  const [nodes, snaps, pols] = await Promise.all([
+    api('/api/nodes'), api('/api/snapshots'), api('/api/policies')
+  ]);
+  if (!nodes) return;
+
+  document.getElementById('stat-nodes').textContent    = nodes.count || 0;
+  document.getElementById('stat-snaps').textContent    = snaps?.count || 0;
+  document.getElementById('stat-policies').textContent = pols?.count || 0;
+
+  // Nodos en dashboard
+  const nl = document.getElementById('dash-nodes-list');
+  if (!nodes.nodes?.length) {
+    nl.innerHTML = '<div class="empty">No hay nodos registrados. Inicia un agente para registrar el primer nodo.</div>';
+  } else {
+    nl.innerHTML = '<table><thead><tr><th>ID</th><th>Hostname</th><th>Dirección</th><th>Estado</th><th>Último visto</th></tr></thead><tbody>' +
+      nodes.nodes.map(n => `<tr>
+        <td style="font-family:monospace;font-size:11px">${n.id?.slice(0,8)}...</td>
+        <td><b>${n.hostname}</b></td>
+        <td>${n.address}</td>
+        <td><span class="badge ${n.status==='online'?'badge-green':'badge-red'}">${n.status}</span></td>
+        <td style="color:var(--muted)">${fmtDate(n.last_seen)}</td>
+      </tr>`).join('') + '</tbody></table>';
+  }
+
+  // Snapshots recientes en dashboard
+  const sl = document.getElementById('dash-snaps-list');
+  const recent = snaps?.snapshots?.slice(0, 5) || [];
+  if (!recent.length) {
+    sl.innerHTML = '<div class="empty">No hay snapshots todavía.</div>';
+  } else {
+    sl.innerHTML = '<table><thead><tr><th>ID</th><th>Path</th><th>Estado</th><th>Creado</th></tr></thead><tbody>' +
+      recent.map(s => `<tr>
+        <td style="font-family:monospace;font-size:11px">${s.id?.slice(0,8)}...</td>
+        <td style="font-family:monospace;font-size:12px">${s.snapshot_path}</td>
+        <td><span class="badge badge-green">${s.status}</span></td>
+        <td style="color:var(--muted)">${fmtDate(s.created_at)}</td>
+      </tr>`).join('') + '</tbody></table>';
+  }
+}
+
+// ── Snapshots ─────────────────────────────────────────────
+async function loadSnapshots() {
+  const data = await api('/api/snapshots');
+  if (!data) return;
+  const el = document.getElementById('snaps-table');
+  if (!data.snapshots?.length) {
+    el.innerHTML = '<div class="empty">No hay snapshots.</div>'; return;
+  }
+  el.innerHTML = '<table><thead><tr><th>ID</th><th>Nodo</th><th>Path</th><th>RO</th><th>Estado</th><th>Creado</th><th></th></tr></thead><tbody>' +
+    data.snapshots.map(s => `<tr>
+      <td style="font-family:monospace;font-size:11px">${s.id?.slice(0,8)}...</td>
+      <td style="font-family:monospace;font-size:11px">${s.node_id?.slice(0,8)}...</td>
+      <td style="font-family:monospace;font-size:12px">${s.snapshot_path}</td>
+      <td><span class="badge ${s.is_readonly?'badge-yellow':'badge-gray'}">${s.is_readonly?'RO':'RW'}</span></td>
+      <td><span class="badge badge-green">${s.status}</span></td>
+      <td style="color:var(--muted)">${fmtDate(s.created_at)}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteSnapshot('${s.id}')">Eliminar</button></td>
+    </tr>`).join('') + '</tbody></table>';
+}
+
+async function createSnapshot() {
+  const msg = document.getElementById('snap-msg');
+  const body = {
+    node_id:       document.getElementById('snap-node').value.trim(),
+    subvolume_path:document.getElementById('snap-path').value.trim(),
+    snapshot_name: document.getElementById('snap-name').value.trim(),
+    readonly:      document.getElementById('snap-ro').value === 'true'
+  };
+  const r = await fetch('/api/snapshots', {
+    method: 'POST',
+    headers: {'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  const data = await r.json();
+  if (r.ok) {
+    msg.style.color = 'var(--green)';
+    msg.textContent = '✅ Snapshot creado: ' + data.snapshot_path;
+    loadSnapshots();
+  } else {
+    msg.style.color = 'var(--red)';
+    msg.textContent = '❌ ' + (data.error || 'Error al crear snapshot');
+  }
+}
+
+async function deleteSnapshot(id) {
+  if (!confirm('¿Eliminar este snapshot?')) return;
+  const r = await fetch('/api/snapshots/delete', {
+    method: 'POST',
+    headers: {'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+    body: JSON.stringify({snapshot_id: id, force: false})
+  });
+  const data = await r.json();
+  if (data.success) loadSnapshots();
+  else alert('Error: ' + data.message);
+}
+
+// ── Nodes ─────────────────────────────────────────────────
+async function loadNodes() {
+  const data = await api('/api/nodes');
+  if (!data) return;
+  const el = document.getElementById('nodes-table');
+  if (!data.nodes?.length) {
+    el.innerHTML = '<div class="empty">No hay nodos. Inicia snapah-agent en un servidor BTRFS.</div>'; return;
+  }
+  el.innerHTML = '<table><thead><tr><th>ID</th><th>Hostname</th><th>Dirección</th><th>Estado</th><th>Último heartbeat</th></tr></thead><tbody>' +
+    data.nodes.map(n => `<tr>
+      <td style="font-family:monospace;font-size:12px">${n.id}</td>
+      <td><b>${n.hostname}</b></td>
+      <td>${n.address}</td>
+      <td><span class="dot ${n.status==='online'?'dot-green':'dot-red'}"></span>${n.status}</td>
+      <td style="color:var(--muted)">${fmtDate(n.last_seen)}</td>
+    </tr>`).join('') + '</tbody></table>';
+}
+
+// ── Policies ──────────────────────────────────────────────
+async function loadPolicies() {
+  const data = await api('/api/policies');
+  if (!data) return;
+  const el = document.getElementById('policies-table');
+  if (!data.policies?.length) {
+    el.innerHTML = '<div class="empty">No hay políticas configuradas.</div>'; return;
+  }
+  el.innerHTML = '<table><thead><tr><th>Nombre</th><th>Schedule</th><th>Path</th><th>Retención</th><th>Estado</th></tr></thead><tbody>' +
+    data.policies.map(p => `<tr>
+      <td><b>${p.name}</b></td>
+      <td style="font-family:monospace">${p.schedule}</td>
+      <td style="font-family:monospace;font-size:12px">${p.subvolume_path}</td>
+      <td>${p.retention_daily}d / ${p.retention_weekly}w</td>
+      <td><span class="badge ${p.enabled?'badge-green':'badge-gray'}">${p.enabled?'Activa':'Pausada'}</span></td>
+    </tr>`).join('') + '</tbody></table>';
+}
+
+async function createPolicy() {
+  const msg = document.getElementById('pol-msg');
+  const body = {
+    name:           document.getElementById('pol-name').value.trim(),
+    node_id:        document.getElementById('pol-node').value.trim(),
+    subvolume_path: document.getElementById('pol-path').value.trim(),
+    schedule:       document.getElementById('pol-schedule').value.trim(),
+    retention_daily:  parseInt(document.getElementById('pol-daily').value) || 7,
+    retention_weekly: parseInt(document.getElementById('pol-weekly').value) || 4,
+    readonly: true, enabled: true
+  };
+  const r = await fetch('/api/policies', {
+    method: 'POST',
+    headers: {'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  const data = await r.json();
+  if (r.ok) {
+    msg.style.color = 'var(--green)';
+    msg.textContent = '✅ Política creada: ' + data.name;
+    loadPolicies();
+  } else {
+    msg.style.color = 'var(--red)';
+    msg.textContent = '❌ ' + (data.error || 'Error');
+  }
+}
+
+// ── Events ────────────────────────────────────────────────
+async function loadEvents() {
+  const data = await api('/api/events');
+  if (!data) return;
+  const el = document.getElementById('events-list');
+  if (!data.events?.length) {
+    el.innerHTML = '<div class="empty">No hay eventos registrados.</div>'; return;
+  }
+  el.innerHTML = data.events.map(e => `
+    <div class="event-item">
+      <span class="event-time">${fmtDate(e.created_at)}</span>
+      <span class="badge ${severityBadge(e.severity)}" style="margin-right:8px">${e.severity}</span>
+      <span class="event-msg">${e.message}</span>
+    </div>`).join('');
+}
+
+// ── Helpers ───────────────────────────────────────────────
+function fmtDate(s) {
+  if (!s) return '-';
+  try { return new Date(s).toLocaleString('es-CO', {hour12:false}); } catch { return s; }
+}
+function severityBadge(s) {
+  const map = {info:'badge-green', warning:'badge-yellow', error:'badge-red', critical:'badge-red'};
+  return map[s] || 'badge-gray';
+}
+
+// ── Init ──────────────────────────────────────────────────
+if (token) showApp();
+
+// Auto-refresh dashboard cada 30s
+setInterval(() => {
+  if (document.getElementById('tab-dashboard') && !document.getElementById('tab-dashboard').classList.contains('hidden')) {
+    loadDashboard();
+  }
+}, 30000);
+</script>
 </body>
 </html>
