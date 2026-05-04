@@ -71,3 +71,12 @@ install-systemd: build ## Instala servicios systemd
 	@echo "$(GREEN)✅ Servicios instalados$(RESET)"
 	@echo "$(YELLOW)   sudo systemctl enable --now snapah-server$(RESET)"
 	@echo "$(YELLOW)   sudo systemctl enable --now snapah-agent$(RESET)"
+
+stop: ## Detiene todos los procesos snapah
+	@pkill -f snapah-server 2>/dev/null || true
+	@pkill -f snapah-agent 2>/dev/null || true
+	@echo "$(GREEN)✅ Procesos detenidos$(RESET)"
+
+run: build stop ## Compila y levanta el servidor
+	@echo "$(CYAN)🔥 Iniciando Snapah Pow Server...$(RESET)"
+	@./bin/snapah-server
