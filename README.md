@@ -93,11 +93,11 @@ GPL3 2026 Johan David
 - [x] Retry automático en fallo de red
 
 ### v0.5.0 — Observabilidad
-- [ ] Métricas Prometheus (/metrics)
+- [x] Métricas Prometheus (/metrics)
 - [ ] Dashboard Grafana preconfigurado
 - [ ] Alertas configurables (snapshot fallido, nodo offline)
-- [ ] Historial de ejecuciones de políticas
-- [ ] Uptime monitor integrado
+- [x] Historial de ejecuciones de políticas
+- [x] Uptime monitor integrado
 
 ### v0.6.0 — Producción
 - [ ] Soporte PostgreSQL además de SQLite
