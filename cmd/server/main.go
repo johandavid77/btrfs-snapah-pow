@@ -17,6 +17,7 @@ import (
 	"github.com/johandavid77/btrfs-snapah-pow/internal/btrfs"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/config"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/ratelimit"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/alerts"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/replication"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -38,6 +39,8 @@ type server struct {
 	authMgr   *auth.Manager
 	users     *auth.UserStore
 	replMgr   *replication.Manager
+	alertsMgr *alerts.Manager
+	watchdog  *alerts.Watchdog
 }
 
 func newServer(cfg *config.Config, db *storage.DB) *server {
@@ -53,12 +56,15 @@ func newServer(cfg *config.Config, db *storage.DB) *server {
 	users.Add(generateID(), "admin",    adminPass,    "admin")
 	users.Add(generateID(), "operator", "operator123", "operator")
 
-	replMgr := replication.NewManager(btrfsMgr, db)
+	replMgr  := replication.NewManager(btrfsMgr, db)
+	alertsMgr := alerts.NewManager(alerts.ConfigFromEnv())
+	watchdog  := alerts.NewWatchdog(db, alertsMgr, 60*time.Second)
+	watchdog.Start()
 
 	return &server{
 		config: cfg, db: db, btrfs: btrfsMgr,
 		scheduler: sched, authMgr: authMgr, users: users,
-		replMgr: replMgr,
+		replMgr: replMgr, alertsMgr: alertsMgr, watchdog: watchdog,
 	}
 }
 
@@ -406,6 +412,52 @@ func (s *server) handleRestore(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+
+func (s *server) handleAlertTest(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	if r.Header.Get("X-User-Role") != "admin" {
+		forbidden(w, "solo admin puede enviar alertas de prueba")
+		return
+	}
+	var req struct {
+		Level   string `json:"level"`
+		Title   string `json:"title"`
+		Message string `json:"message"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpErr(w, err, http.StatusBadRequest)
+		return
+	}
+	if req.Level == "" { req.Level = "info" }
+	if req.Title == "" { req.Title = "Alerta de prueba" }
+	if req.Message == "" { req.Message = "Test desde snapah-pow" }
+
+	s.alertsMgr.Send(alerts.Alert{
+		Level:   req.Level,
+		Title:   req.Title,
+		Message: req.Message,
+		NodeID:  "manual",
+	})
+	jsonResp(w, map[string]string{"status": "alerta enviada", "level": req.Level})
+}
+
+func (s *server) handleAlertConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Header.Get("X-User-Role") != "admin" {
+		forbidden(w, "solo admin")
+		return
+	}
+	cfg := alerts.ConfigFromEnv()
+	jsonResp(w, map[string]interface{}{
+		"email_enabled":   cfg.EmailEnabled,
+		"webhook_enabled": cfg.WebhookEnabled,
+		"smtp_host":       cfg.SMTPHost,
+		"smtp_from":       cfg.SMTPFrom,
+	})
+}
+
 func (s *server) handleReplicate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -546,6 +598,8 @@ func main() {
 	mux.HandleFunc("/api/events",            apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleEvents)))
 	mux.HandleFunc("/api/policies",          apiLimiter.Middleware(srv.authMgr.Middleware(srv.handlePolicies)))
 	mux.HandleFunc("/api/restore",          apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleRestore)))
+	mux.HandleFunc("/api/alerts/test",   apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleAlertTest)))
+	mux.HandleFunc("/api/alerts/config", apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleAlertConfig)))
 	mux.HandleFunc("/api/replicate",         apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleReplicate)))
 	mux.HandleFunc("/api/replication/jobs",  apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleReplicationJobs)))
 
