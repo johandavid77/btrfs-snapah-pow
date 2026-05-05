@@ -94,7 +94,7 @@ GPL3 2026 Johan David
 
 ### v0.5.0 — Observabilidad
 - [x] Métricas Prometheus (/metrics)
-- [ ] Dashboard Grafana preconfigurado
+- [x] Dashboard Grafana preconfigurado
 - [ ] Alertas configurables (snapshot fallido, nodo offline)
 - [x] Historial de ejecuciones de políticas
 - [x] Uptime monitor integrado
