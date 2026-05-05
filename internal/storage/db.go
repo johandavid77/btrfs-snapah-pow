@@ -17,7 +17,7 @@ type DB struct {
 // NewDB crea una nueva conexión SQLite
 func NewDB(path string) (*DB, error) {
 	db, err := gorm.Open(sqlite.Open(path), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)

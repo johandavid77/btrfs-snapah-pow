@@ -18,6 +18,8 @@ import (
 	"github.com/johandavid77/btrfs-snapah-pow/internal/config"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/ratelimit"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/replication"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/metrics"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/scheduler"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/storage"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/tlsconfig"
@@ -127,6 +129,7 @@ func (s *server) CreateSnapshot(ctx context.Context, req *pb.CreateSnapshotReque
 		return nil, err
 	}
 	log.Printf("📸 Snapshot creado: %s", snapPath)
+	metrics.SnapshotCreatedTotal.Inc()
 	return &pb.Snapshot{
 		Id: snap.ID, NodeId: snap.NodeID,
 		SnapshotPath: snap.SnapshotPath, SubvolumePath: snap.SubvolumePath,
@@ -162,6 +165,7 @@ func (s *server) DeleteSnapshot(ctx context.Context, req *pb.DeleteSnapshotReque
 	}
 	s.db.DeleteSnapshot(req.SnapshotId)
 	log.Printf("🗑️  Snapshot eliminado: %s", snap.SnapshotPath)
+	metrics.SnapshotDeletedTotal.Inc()
 	return &pb.DeleteSnapshotResponse{Success: true, Message: "deleted"}, nil
 }
 
@@ -417,6 +421,26 @@ func main() {
 	loginLimiter := ratelimit.New(10, time.Minute)
 	apiLimiter   := ratelimit.New(200, time.Minute)
 
+	// Actualizar metricas cada 30s
+	go func() {
+		for {
+			if nodes, err := db.ListNodes(); err == nil {
+				online := 0
+				for _, n := range nodes {
+					if n.Status == "online" { online++ }
+				}
+				metrics.NodesOnline.Set(float64(online))
+			}
+			if snaps, err := db.ListSnapshots(""); err == nil {
+				metrics.SnapshotsTotal.Set(float64(len(snaps)))
+			}
+			if pols, err := db.ListPolicies(""); err == nil {
+				metrics.PoliciesActive.Set(float64(len(pols)))
+			}
+			time.Sleep(30 * time.Second)
+		}
+	}()
+
 	// ── gRPC ─────────────────────────────────────────────
 	grpcAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.GRPCPort)
 	grpcLis, err := net.Listen("tcp", grpcAddr)
@@ -445,6 +469,8 @@ func main() {
 
 	// ── HTTP ─────────────────────────────────────────────
 	mux := http.NewServeMux()
+
+	// Metricas Prometheus — público
 	mux.Handle("/", http.FileServer(http.Dir("web")))
 
 	// Público
@@ -463,6 +489,15 @@ func main() {
 	mux.HandleFunc("/api/policies",          apiLimiter.Middleware(srv.authMgr.Middleware(srv.handlePolicies)))
 	mux.HandleFunc("/api/replicate",         apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleReplicate)))
 	mux.HandleFunc("/api/replication/jobs",  apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleReplicationJobs)))
+
+	// Servidor de métricas en puerto separado (no interfiere con FileServer)
+	metricsMux := http.NewServeMux()
+	metricsMux.Handle("/metrics", promhttp.Handler())
+	metricsServer := &http.Server{Addr: "0.0.0.0:9093", Handler: metricsMux}
+	go func() {
+		log.Printf("📊 Metrics en http://0.0.0.0:9093/metrics")
+		metricsServer.ListenAndServe()
+	}()
 
 	httpAddr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	httpServer := &http.Server{Addr: httpAddr, Handler: mux}
