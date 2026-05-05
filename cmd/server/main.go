@@ -348,6 +348,64 @@ func (s *server) handlePolicies(w http.ResponseWriter, r *http.Request) {
 }
 
 
+
+func (s *server) handleRestore(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	role := r.Header.Get("X-User-Role")
+	if role != "admin" && role != "operator" {
+		forbidden(w, "solo admin u operator puede restaurar snapshots")
+		return
+	}
+
+	var req struct {
+		SnapshotID  string `json:"snapshot_id"`
+		RestorePath string `json:"restore_path"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpErr(w, err, http.StatusBadRequest)
+		return
+	}
+	if req.SnapshotID == "" || req.RestorePath == "" {
+		httpErr(w, fmt.Errorf("snapshot_id y restore_path son requeridos"), http.StatusBadRequest)
+		return
+	}
+
+	snap, err := s.db.GetSnapshot(req.SnapshotID)
+	if err != nil {
+		httpErr(w, fmt.Errorf("snapshot no encontrado: %w", err), http.StatusNotFound)
+		return
+	}
+
+	log.Printf("🔄 Restaurando snapshot %s -> %s", snap.SnapshotPath, req.RestorePath)
+
+	// btrfs subvolume snapshot <snap_path> <restore_path>
+	// Crea un snapshot writable del snapshot readonly como punto de restauracion
+	if err := s.btrfs.CreateSnapshot(snap.SnapshotPath, req.RestorePath, false); err != nil {
+		httpErr(w, fmt.Errorf("error restaurando: %w", err), http.StatusInternalServerError)
+		return
+	}
+
+	// Registrar evento
+	s.db.CreateEvent(&storage.Event{
+		ID:       generateID(),
+		Type:     "snapshot_restored",
+		NodeID:   snap.NodeID,
+		Message:  fmt.Sprintf("Snapshot restaurado: %s -> %s", snap.SnapshotPath, req.RestorePath),
+		Severity: "info",
+	})
+
+	log.Printf("✅ Restore completado: %s", req.RestorePath)
+	jsonResp(w, map[string]interface{}{
+		"success":      true,
+		"snapshot_path": snap.SnapshotPath,
+		"restore_path":  req.RestorePath,
+		"message":       fmt.Sprintf("Snapshot restaurado exitosamente en %s", req.RestorePath),
+	})
+}
+
 func (s *server) handleReplicate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -487,6 +545,7 @@ func main() {
 	mux.HandleFunc("/api/snapshots/delete",  apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleDeleteSnapshot)))
 	mux.HandleFunc("/api/events",            apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleEvents)))
 	mux.HandleFunc("/api/policies",          apiLimiter.Middleware(srv.authMgr.Middleware(srv.handlePolicies)))
+	mux.HandleFunc("/api/restore",          apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleRestore)))
 	mux.HandleFunc("/api/replicate",         apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleReplicate)))
 	mux.HandleFunc("/api/replication/jobs",  apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleReplicationJobs)))
 
