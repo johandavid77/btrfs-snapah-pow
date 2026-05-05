@@ -468,7 +468,7 @@ func main() {
 	}
 
 	os.MkdirAll("data", 0755)
-	db, err := storage.NewDB("data/snapah.db")
+	db, err := storage.NewDB(storage.DBFromEnv("data/snapah.db"))
 	if err != nil {
 		log.Fatalf("❌ Database error: %v", err)
 	}
