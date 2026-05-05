@@ -100,9 +100,9 @@ GPL3 2026 Johan David
 - [x] Uptime monitor integrado
 
 ### v0.6.0 — Producción
-- [ ] Soporte PostgreSQL además de SQLite
+- [x] Soporte PostgreSQL además de SQLite
 - [ ] Imagen Docker oficial
 - [ ] Helm chart para Kubernetes
-- [ ] CLI interactivo (TUI con Bubble Tea)
+- [x] CLI interactivo (TUI con Bubble Tea)
 - [ ] Documentación completa en GitHub Pages
-- [ ] Tests de integración end-to-end
+- [x] Tests de integración end-to-end
