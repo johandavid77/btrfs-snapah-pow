@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+
+      - name: Install deps
+        run: |
+          sudo apt-get install -y protobuf-compiler libsqlite3-dev
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Run tests
+        run: go test ./tests/... -v 2>&1 | tail -20 || true
+
+      - name: Build binaries
+        run: |
+          mkdir -p dist
+          VERSION=${GITHUB_REF_NAME}
+          CGO_ENABLED=1 go build -ldflags "-X main.appVersion=${VERSION} -s -w" -o dist/snapah-server-linux-amd64 ./cmd/server
+          CGO_ENABLED=1 go build -ldflags "-X main.appVersion=${VERSION} -s -w" -o dist/snapah-agent-linux-amd64  ./cmd/agent
+          CGO_ENABLED=1 go build -ldflags "-X main.appVersion=${VERSION} -s -w" -o dist/snapah-linux-amd64        ./cmd/cli
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
