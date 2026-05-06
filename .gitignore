@@ -1,0 +1,35 @@
+# Binarios compilados
+bin/
+dist/
+
+# Base de datos local
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Backups locales
+backups/
+
+# Uploads
+uploads/
+
+# Logs
+*.log
+/tmp/
+
+# Certificados generados (no commitear claves privadas)
+certs/*.key
+certs/*.crt
+certs/*.srl
+
+# Entorno
+.env
+.env.local
+
+# Go
+vendor/
+
+# OS
+.DS_Store
+Thumbs.db
