@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -15,7 +18,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
-          cache: true
+          cache: false
 
       - name: Install deps
         run: |
@@ -31,12 +34,12 @@ jobs:
       - name: Build
         run: CGO_ENABLED=1 go build ./...
 
-      - name: Run smoke tests
+      - name: Smoke tests
         run: |
           CGO_ENABLED=1 go build -o /tmp/snapah-server ./cmd/server
           /tmp/snapah-server &
           sleep 3
-          go test ./tests/... -v -timeout 30s 2>&1 | tail -20
+          go test ./tests/... -v -timeout 30s 2>&1 | tail -25
           pkill snapah-server || true
 
   security:
@@ -47,9 +50,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
+          cache: false
 
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@latest
-
-      - name: Run govulncheck
-        run: govulncheck ./... || true
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./... 2>&1 || echo "govulncheck: advertencias registradas, no bloqueante"

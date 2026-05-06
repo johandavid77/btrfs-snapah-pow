@@ -86,7 +86,10 @@ func TestLogin(t *testing.T) {
 
 func TestLoginWrongPassword(t *testing.T) {
 	body, _ := json.Marshal(map[string]string{"username": "admin", "password": "wrong"})
-	resp, _ := http.Post(baseURL+"/api/auth/login", "application/json", bytes.NewReader(body))
+	resp, err := http.Post(baseURL+"/api/auth/login", "application/json", bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("login wrong password: %v", err)
+	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 401 {
 		t.Fatalf("esperaba 401, got %d", resp.StatusCode)

@@ -14,6 +14,7 @@ type Watchdog struct {
 	stop    chan struct{}
 	// estado anterior de nodos para detectar cambios
 	lastStatus map[string]string
+	interval   time.Duration
 }
 
 func NewWatchdog(db *storage.DB, alertsMgr *Manager, interval time.Duration) *Watchdog {
@@ -23,11 +24,12 @@ func NewWatchdog(db *storage.DB, alertsMgr *Manager, interval time.Duration) *Wa
 		ticker:     time.NewTicker(interval),
 		stop:       make(chan struct{}),
 		lastStatus: make(map[string]string),
+		interval:   interval,
 	}
 }
 
 func (w *Watchdog) Start() {
-	log.Printf("🐕 Watchdog iniciado — revisando cada %s", w.ticker)
+	log.Printf("🐕 Watchdog iniciado — revisando cada %s", w.interval.String())
 	go func() {
 		for {
 			select {
