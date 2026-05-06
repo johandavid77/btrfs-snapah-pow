@@ -122,6 +122,7 @@ tr:hover td{background:rgba(255,255,255,.02);}
     <div class="tab" onclick="showTab('events',this)">Eventos</div>
     <div class="tab" onclick="showTab('replication',this)">Replicacion</div>
     <div class="tab" onclick="showTab('alerts',this)">Alertas</div>
+    <div class="tab" onclick="showTab('apikeys',this)">API Keys</div>
   </nav>
   <main>
 
@@ -248,6 +249,27 @@ tr:hover td{background:rgba(255,255,255,.02);}
       </div>
     </div>
 
+
+    <!-- API KEYS -->
+    <div id="tab-apikeys" class="hidden">
+      <div class="card">
+        <div class="card-title">Nueva API Key</div>
+        <div class="form-grid">
+          <div class="form-group"><label>Nombre</label><input id="key-name" placeholder="mi-script-backup"></div>
+          <div class="form-group"><label>Rol</label><select id="key-role"><option value="operator">operator</option><option value="admin">admin</option><option value="viewer">viewer</option></select></div>
+          <div class="form-group"><label>Expira en (dias, 0 = nunca)</label><input id="key-expires" type="number" value="0" min="0"></div>
+        </div>
+        <div class="form-actions"><button class="btn btn-sm" onclick="createAPIKey()">Generar API Key</button></div>
+        <div id="key-result" style="margin-top:14px;"></div>
+      </div>
+      <div class="card">
+        <div class="card-title"><span>API Keys activas</span><button class="btn btn-sm" onclick="loadAPIKeys()">Actualizar</button></div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">
+          Usa la key con el header <code style="background:var(--surface);padding:2px 8px;border-radius:4px;color:var(--yellow);">X-API-Key: spow_...</code> o como <code style="background:var(--surface);padding:2px 8px;border-radius:4px;color:var(--yellow);">Authorization: Bearer spow_...</code>
+        </div>
+        <div id="apikeys-table"></div>
+      </div>
+    </div>
   </main>
 </div>
 
@@ -307,6 +329,7 @@ function showTab(name,el){
   if(name==='events')loadEvents();
   if(name==='replication')loadReplicationJobs();
   if(name==='alerts')loadAlertConfig();
+  if(name==='apikeys')loadAPIKeys();
 }
 
 function fmtDate(s){if(!s)return '-';try{return new Date(s).toLocaleString('es-CO',{hour12:false});}catch{return s;}}
@@ -455,6 +478,48 @@ async function confirmRestore(){
 
 if(token)showApp();
 setInterval(()=>{const d=document.getElementById('tab-dashboard');if(d&&!d.classList.contains('hidden'))loadDashboard();},30000);
+
+// API KEYS
+async function loadAPIKeys(){
+  const data=await api('/api/keys');if(!data)return;
+  const el=document.getElementById('apikeys-table');
+  if(!data.keys?.length){el.innerHTML='<div class="empty">No hay API keys. Crea una para acceso externo.</div>';return;}
+  el.innerHTML='<table><thead><tr><th>Nombre</th><th>Prefijo</th><th>Rol</th><th>Estado</th><th>Creada</th><th>Ultimo uso</th><th></th></tr></thead><tbody>'+
+    data.keys.map(k=>`<tr>
+      <td><b>${k.name}</b></td>
+      <td style="font-family:monospace;color:var(--yellow)">${k.prefix}...</td>
+      <td><span class="badge badge-gray">${k.role}</span></td>
+      <td><span class="badge ${k.active?'badge-green':'badge-red'}">${k.active?'activa':'revocada'}</span></td>
+      <td style="color:var(--muted)">${fmtDate(k.created_at)}</td>
+      <td style="color:var(--muted)">${k.last_used_at?fmtDate(k.last_used_at):'nunca'}</td>
+      <td>${k.active?'<button class="btn btn-sm btn-danger" onclick="revokeKey(''+k.id+'')">Revocar</button>':''}</td>
+    </tr>`).join('')+'</tbody></table>';
+}
+
+async function createAPIKey(){
+  const el=document.getElementById('key-result');
+  const body={name:document.getElementById('key-name').value.trim(),role:document.getElementById('key-role').value,expires_days:parseInt(document.getElementById('key-expires').value)||0};
+  const r=await fetch('/api/keys',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const data=await r.json();
+  if(r.ok){
+    el.innerHTML=`
+      <div style="background:rgba(34,166,74,.1);border:1px solid rgba(34,166,74,.3);border-radius:8px;padding:16px;">
+        <div style="color:var(--green);font-weight:600;margin-bottom:8px;">API Key generada exitosamente</div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;font-family:monospace;font-size:13px;word-break:break-all;color:var(--yellow);">${data.key}</div>
+        <div style="color:var(--red);font-size:12px;margin-top:8px;">${data.warning}</div>
+      </div>`;
+    loadAPIKeys();
+  }else{el.innerHTML='<div style="color:var(--red);font-size:13px;">Error: '+(data.error||'fallo')+'</div>';}
+}
+
+async function revokeKey(id){
+  if(!confirm('Revocar esta API key? Esta accion no se puede deshacer.'))return;
+  const r=await fetch('/api/keys/revoke',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id})});
+  const data=await r.json();
+  if(data.success)loadAPIKeys();
+  else alert('Error al revocar');
+}
+
 </script>
 </body>
 </html>

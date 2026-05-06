@@ -18,6 +18,7 @@ import (
 	"github.com/johandavid77/btrfs-snapah-pow/internal/config"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/ratelimit"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/alerts"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/apikeys"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/replication"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -41,6 +42,7 @@ type server struct {
 	replMgr   *replication.Manager
 	alertsMgr *alerts.Manager
 	watchdog  *alerts.Watchdog
+	apiKeyStore *apikeys.Store
 }
 
 func newServer(cfg *config.Config, db *storage.DB) *server {
@@ -60,11 +62,13 @@ func newServer(cfg *config.Config, db *storage.DB) *server {
 	alertsMgr := alerts.NewManager(alerts.ConfigFromEnv())
 	watchdog  := alerts.NewWatchdog(db, alertsMgr, 60*time.Second)
 	watchdog.Start()
+	apiKeyStore := apikeys.NewStore()
 
 	return &server{
 		config: cfg, db: db, btrfs: btrfsMgr,
 		scheduler: sched, authMgr: authMgr, users: users,
 		replMgr: replMgr, alertsMgr: alertsMgr, watchdog: watchdog,
+		apiKeyStore: apiKeyStore,
 	}
 }
 
@@ -413,6 +417,82 @@ func (s *server) handleRestore(w http.ResponseWriter, r *http.Request) {
 }
 
 
+
+func (s *server) handleAPIKeys(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		if r.Header.Get("X-User-Role") != "admin" {
+			forbidden(w, "solo admin puede listar API keys")
+			return
+		}
+		keys := s.apiKeyStore.List()
+		safe := make([]map[string]interface{}, 0, len(keys))
+		for _, k := range keys {
+			m := map[string]interface{}{
+				"id": k.ID, "name": k.Name, "prefix": k.Prefix,
+				"role": k.Role, "active": k.Active,
+				"created_at": k.CreatedAt,
+			}
+			if k.ExpiresAt != nil { m["expires_at"] = k.ExpiresAt }
+			if k.LastUsedAt != nil { m["last_used_at"] = k.LastUsedAt }
+			safe = append(safe, m)
+		}
+		jsonResp(w, map[string]interface{}{"count": len(safe), "keys": safe})
+
+	case http.MethodPost:
+		if r.Header.Get("X-User-Role") != "admin" {
+			forbidden(w, "solo admin puede crear API keys")
+			return
+		}
+		var req struct {
+			Name        string `json:"name"`
+			Role        string `json:"role"`
+			ExpiresDays int    `json:"expires_days"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			httpErr(w, err, http.StatusBadRequest)
+			return
+		}
+		if req.Name == "" { req.Name = "api-key-" + generateID()[:6] }
+		if req.Role == "" { req.Role = "operator" }
+
+		plaintext, key, err := s.apiKeyStore.Generate(req.Name, req.Role, req.ExpiresDays)
+		if err != nil {
+			httpErr(w, err, http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusCreated)
+		jsonResp(w, map[string]interface{}{
+			"id": key.ID, "name": key.Name, "role": key.Role,
+			"prefix": key.Prefix, "active": key.Active,
+			"created_at": key.CreatedAt,
+			"key": plaintext,
+			"warning": "Guarda esta key ahora. No se puede recuperar despues.",
+		})
+
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
+func (s *server) handleRevokeAPIKey(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	if r.Header.Get("X-User-Role") != "admin" {
+		forbidden(w, "solo admin puede revocar API keys")
+		return
+	}
+	var req struct { ID string `json:"id"` }
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		httpErr(w, err, http.StatusBadRequest)
+		return
+	}
+	ok := s.apiKeyStore.Revoke(req.ID)
+	jsonResp(w, map[string]interface{}{"success": ok, "id": req.ID})
+}
+
 func (s *server) handleAlertTest(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -598,6 +678,8 @@ func main() {
 	mux.HandleFunc("/api/events",            apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleEvents)))
 	mux.HandleFunc("/api/policies",          apiLimiter.Middleware(srv.authMgr.Middleware(srv.handlePolicies)))
 	mux.HandleFunc("/api/restore",          apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleRestore)))
+	mux.HandleFunc("/api/keys",        apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleAPIKeys)))
+	mux.HandleFunc("/api/keys/revoke",  apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleRevokeAPIKey)))
 	mux.HandleFunc("/api/alerts/test",   apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleAlertTest)))
 	mux.HandleFunc("/api/alerts/config", apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleAlertConfig)))
 	mux.HandleFunc("/api/replicate",         apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleReplicate)))
