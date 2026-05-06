@@ -67,3 +67,16 @@ type Event struct {
 	CreatedAt time.Time      `json:"created_at"`
 	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
+
+// APIKeyRecord persiste las API keys en DB
+type APIKeyRecord struct {
+	ID          string     `gorm:"primaryKey" json:"id"`
+	Name        string     `json:"name"`
+	KeyHash     string     `json:"-"`
+	Prefix      string     `json:"prefix"`
+	Role        string     `json:"role"`
+	Active      bool       `json:"active"`
+	CreatedAt   time.Time  `json:"created_at"`
+	ExpiresAt   *time.Time `json:"expires_at,omitempty"`
+	LastUsedAt  *time.Time `json:"last_used_at,omitempty"`
+}

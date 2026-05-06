@@ -7,13 +7,11 @@ import (
 	"github.com/johandavid77/btrfs-snapah-pow/internal/auth"
 )
 
-// Middleware acepta tanto JWT como API Keys en el header Authorization
 func CombinedMiddleware(jwtMgr *auth.Manager, store *Store, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		bearer := r.Header.Get("Authorization")
 		apiKeyHeader := r.Header.Get("X-API-Key")
 
-		// Intentar API Key primero (header X-API-Key o Bearer spow_...)
 		rawKey := apiKeyHeader
 		if rawKey == "" && strings.HasPrefix(bearer, "Bearer spow_") {
 			rawKey = strings.TrimPrefix(bearer, "Bearer ")
@@ -34,7 +32,6 @@ func CombinedMiddleware(jwtMgr *auth.Manager, store *Store, next http.HandlerFun
 			return
 		}
 
-		// Fallback a JWT
 		jwtMgr.Middleware(next)(w, r)
 	}
 }

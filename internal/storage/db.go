@@ -36,7 +36,7 @@ func NewDB(dsn string) (*DB, error) {
 	}
 
 	if err := db.AutoMigrate(
-		&Node{}, &Snapshot{}, &Policy{}, &Event{},
+		&Node{}, &Snapshot{}, &Policy{}, &Event{}, &APIKeyRecord{},
 	); err != nil {
 		return nil, fmt.Errorf("migrar schema: %w", err)
 	}
@@ -96,4 +96,26 @@ func DBFromEnv(fallback string) string {
 		return v
 	}
 	return fallback
+}
+
+func (d *DB) SaveAPIKey(k *APIKeyRecord) error {
+	return d.gorm.Save(k).Error
+}
+
+func (d *DB) ListAPIKeys() ([]APIKeyRecord, error) {
+	var keys []APIKeyRecord
+	return keys, d.gorm.Order("created_at desc").Find(&keys).Error
+}
+
+func (d *DB) GetAPIKeyByHash(hash string) (*APIKeyRecord, error) {
+	var k APIKeyRecord
+	return &k, d.gorm.First(&k, "key_hash = ? AND active = ?", hash, true).Error
+}
+
+func (d *DB) RevokeAPIKey(id string) error {
+	return d.gorm.Model(&APIKeyRecord{}).Where("id = ?", id).Update("active", false).Error
+}
+
+func (d *DB) UpdateAPIKeyLastUsed(id string, t time.Time) error {
+	return d.gorm.Model(&APIKeyRecord{}).Where("id = ?", id).Update("last_used_at", t).Error
 }

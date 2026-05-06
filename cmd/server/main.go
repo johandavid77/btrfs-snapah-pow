@@ -62,7 +62,7 @@ func newServer(cfg *config.Config, db *storage.DB) *server {
 	alertsMgr := alerts.NewManager(alerts.ConfigFromEnv())
 	watchdog  := alerts.NewWatchdog(db, alertsMgr, 60*time.Second)
 	watchdog.Start()
-	apiKeyStore := apikeys.NewStore()
+	apiKeyStore := apikeys.NewStore(db)
 
 	return &server{
 		config: cfg, db: db, btrfs: btrfsMgr,
@@ -425,7 +425,11 @@ func (s *server) handleAPIKeys(w http.ResponseWriter, r *http.Request) {
 			forbidden(w, "solo admin puede listar API keys")
 			return
 		}
-		keys := s.apiKeyStore.List()
+		keys, err := s.apiKeyStore.List()
+		if err != nil {
+			httpErr(w, err, http.StatusInternalServerError)
+			return
+		}
 		safe := make([]map[string]interface{}, 0, len(keys))
 		for _, k := range keys {
 			m := map[string]interface{}{
