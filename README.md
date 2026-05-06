@@ -78,12 +78,12 @@ GPL3 2026 Johan David
 - [x] Rate limiting en API
 
 ### v0.3.0 — Web UI
-- [ ] Dashboard con lista de nodos en tiempo real
-- [ ] Tabla de snapshots con filtros
-- [ ] Crear y eliminar snapshots desde el navegador
-- [ ] Gestión de políticas cron via UI
+- [x] Dashboard con lista de nodos en tiempo real
+- [x] Tabla de snapshots con filtros
+- [x] Crear y eliminar snapshots desde el navegador
+- [x] Gestión de políticas cron via UI
 - [ ] Log de eventos en tiempo real (WebSocket)
-- [ ] Indicador de estado de nodos online/offline
+- [x] Indicador de estado de nodos online/offline
 
 ### v0.4.0 — Replicación
 - [x] btrfs send/receive entre nodos
@@ -95,7 +95,7 @@ GPL3 2026 Johan David
 ### v0.5.0 — Observabilidad
 - [x] Métricas Prometheus (/metrics)
 - [x] Dashboard Grafana preconfigurado
-- [ ] Alertas configurables (snapshot fallido, nodo offline)
+- [x] Alertas configurables (snapshot fallido, nodo offline)
 - [x] Historial de ejecuciones de políticas
 - [x] Uptime monitor integrado
 

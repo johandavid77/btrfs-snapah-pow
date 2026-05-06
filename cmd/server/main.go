@@ -19,6 +19,8 @@ import (
 	"github.com/johandavid77/btrfs-snapah-pow/internal/ratelimit"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/alerts"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/apikeys"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/hub"
+	"github.com/johandavid77/btrfs-snapah-pow/internal/hub"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/replication"
 	"github.com/johandavid77/btrfs-snapah-pow/internal/metrics"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -43,6 +45,8 @@ type server struct {
 	alertsMgr *alerts.Manager
 	watchdog  *alerts.Watchdog
 	apiKeyStore *apikeys.Store
+	hub         *hub.Hub
+	hub         *hub.Hub
 }
 
 func newServer(cfg *config.Config, db *storage.DB) *server {
@@ -63,12 +67,16 @@ func newServer(cfg *config.Config, db *storage.DB) *server {
 	watchdog  := alerts.NewWatchdog(db, alertsMgr, 60*time.Second)
 	watchdog.Start()
 	apiKeyStore := apikeys.NewStore(db)
+	wsHub := hub.New()
+	wsHub := hub.New()
 
 	return &server{
 		config: cfg, db: db, btrfs: btrfsMgr,
 		scheduler: sched, authMgr: authMgr, users: users,
 		replMgr: replMgr, alertsMgr: alertsMgr, watchdog: watchdog,
 		apiKeyStore: apiKeyStore,
+		hub: wsHub,
+		hub: wsHub,
 	}
 }
 
@@ -304,6 +312,14 @@ func (s *server) handleDeleteSnapshot(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	jsonResp(w, resp)
+}
+
+func (s *server) broadcastEvent(eventType string, payload interface{}) {
+	s.hub.Broadcast(eventType, payload)
+}
+
+func (s *server) broadcastEvent(eventType string, payload interface{}) {
+	s.hub.Broadcast(eventType, payload)
 }
 
 func (s *server) handleEvents(w http.ResponseWriter, r *http.Request) {
@@ -682,6 +698,8 @@ func main() {
 	mux.HandleFunc("/api/events",            apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleEvents)))
 	mux.HandleFunc("/api/policies",          apiLimiter.Middleware(srv.authMgr.Middleware(srv.handlePolicies)))
 	mux.HandleFunc("/api/restore",          apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleRestore)))
+	mux.HandleFunc("/ws/events", srv.hub.ServeWS)
+	mux.HandleFunc("/ws/events", srv.hub.ServeWS)
 	mux.HandleFunc("/api/keys",        apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleAPIKeys)))
 	mux.HandleFunc("/api/keys/revoke",  apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleRevokeAPIKey)))
 	mux.HandleFunc("/api/alerts/test",   apiLimiter.Middleware(srv.authMgr.Middleware(srv.handleAlertTest)))
