@@ -3,523 +3,867 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Btrfs Snapah Pow</title>
+<title>snapah pow</title>
 <style>
-:root {
-  --bg:#0d0d1a;--surface:#13132a;--card:#1a1a35;--border:#2a2a4a;
-  --green:#22a64a;--yellow:#f5c800;--red:#e8360a;--text:#e8e8f0;--muted:#7878a0;--radius:10px;
-}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:var(--bg);color:var(--text);font-family:'Segoe UI',sans-serif;min-height:100vh;}
-#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;}
-.login-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:48px 40px;width:360px;box-shadow:0 8px 40px rgba(0,0,0,.5);}
-.login-logo{text-align:center;margin-bottom:32px;}
-.login-logo h1{font-size:28px;font-weight:700;}
-.login-logo span{color:var(--yellow);}
-.login-logo p{color:var(--muted);font-size:13px;margin-top:4px;}
-.login-bars{display:flex;gap:4px;justify-content:center;margin-top:8px;}
-.login-bars span{height:4px;width:40px;border-radius:2px;}
-input,select{width:100%;padding:12px 14px;margin-bottom:14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px;outline:none;transition:border .2s;}
-input:focus,select:focus{border-color:var(--green);}
-select option{background:var(--surface);}
-.btn{width:100%;padding:12px;background:var(--green);color:#fff;border:none;border-radius:var(--radius);font-size:15px;font-weight:600;cursor:pointer;transition:opacity .2s;}
-.btn:hover{opacity:.85;}
-.btn-danger{background:var(--red);}
-.btn-yellow{background:var(--yellow);color:#000;}
-.btn-sm{padding:6px 14px;font-size:12px;width:auto;border-radius:6px;font-weight:600;}
-.error-msg{color:var(--red);font-size:13px;margin-top:10px;text-align:center;}
-#app{display:none;}
-header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;height:60px;display:flex;align-items:center;justify-content:space-between;}
-.logo{font-size:18px;font-weight:700;}
-.logo span{color:var(--yellow);}
-.header-right{display:flex;align-items:center;gap:16px;}
-.user-badge{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 14px;font-size:13px;color:var(--muted);}
-.user-badge b{color:var(--text);}
-.logout-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;transition:all .2s;}
-.logout-btn:hover{border-color:var(--red);color:var(--red);}
-nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 32px;display:flex;gap:4px;overflow-x:auto;}
-.tab{padding:14px 16px;font-size:13px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;user-select:none;white-space:nowrap;}
-.tab:hover{color:var(--text);}
-.tab.active{color:var(--green);border-bottom-color:var(--green);}
-main{padding:32px;max-width:1200px;}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:28px;}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;}
-.stat-card .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
-.stat-card .value{font-size:32px;font-weight:700;}
-.stat-card .value.green{color:var(--green);}
-.stat-card .value.yellow{color:var(--yellow);}
-.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px;}
-.card-title{font-size:15px;font-weight:600;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;}
-table{width:100%;border-collapse:collapse;font-size:13px;}
-th{text-align:left;color:var(--muted);font-weight:500;padding:8px 12px;border-bottom:1px solid var(--border);}
-td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.04);}
-tr:hover td{background:rgba(255,255,255,.02);}
-.empty{color:var(--muted);text-align:center;padding:32px;font-size:13px;}
-.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;}
-.badge-green{background:rgba(34,166,74,.15);color:var(--green);}
-.badge-red{background:rgba(232,54,10,.15);color:var(--red);}
-.badge-yellow{background:rgba(245,200,0,.15);color:var(--yellow);}
-.badge-gray{background:rgba(120,120,160,.15);color:var(--muted);}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.form-group{display:flex;flex-direction:column;gap:6px;}
-.form-group label{font-size:12px;color:var(--muted);}
-.form-group input,.form-group select{margin-bottom:0;padding:10px 12px;font-size:13px;}
-.form-actions{margin-top:16px;display:flex;gap:10px;}
-.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
-.dot-green{background:var(--green);box-shadow:0 0 6px var(--green);}
-.dot-red{background:var(--red);}
-.dot-gray{background:var(--muted);}
-.accent-bar{height:3px;display:flex;border-radius:2px;overflow:hidden;margin-bottom:28px;}
-.accent-bar span:nth-child(1){flex:1;background:var(--red);}
-.accent-bar span:nth-child(2){flex:1;background:var(--yellow);}
-.accent-bar span:nth-child(3){flex:1;background:var(--green);}
-.hidden{display:none!important;}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;}
-.modal-overlay.open{display:flex;}
-.modal-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:32px;width:480px;box-shadow:0 8px 40px rgba(0,0,0,.5);}
-.modal-box h3{font-size:16px;margin-bottom:20px;}
-.warning-box{background:rgba(232,54,10,.1);border:1px solid rgba(232,54,10,.3);border-radius:8px;padding:12px;margin-bottom:20px;font-size:13px;color:#e8360a;}
-.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;}
-.info-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;}
-.code-block{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:monospace;font-size:12px;line-height:2;margin-top:12px;}
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600&display=swap');
+
+  :root {
+    --bg:      #0a0a14;
+    --surface: #12121e;
+    --border:  #1e1e32;
+    --text:    #e0e0f0;
+    --muted:   #6060a0;
+    --yellow:  #f5c800;
+    --green:   #22c55e;
+    --red:     #ef4444;
+    --blue:    #60a5fa;
+    --orange:  #f97316;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--yellow);
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--muted); }
+
+  .nav-tabs { display: flex; gap: 2px; flex: 1; overflow-x: auto; }
+
+  .tab {
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .tab:hover { color: var(--text); background: var(--border); }
+  .tab.active { color: var(--yellow); background: rgba(245,200,0,0.08); border-color: rgba(245,200,0,0.2); }
+
+  .header-right { display: flex; align-items: center; gap: 12px; }
+
+  .ws-indicator { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .ws-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); transition: background 0.3s; }
+  .ws-dot.connected { background: var(--green); animation: pulse 2s infinite; }
+  .ws-dot.error { background: var(--red); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .user-badge { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .user-badge span { color: var(--yellow); }
+
+  #login-screen { flex: 1; display: flex; align-items: center; justify-content: center; }
+
+  .login-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 40px;
+    width: 360px;
+  }
+  .login-box h2 { font-family: 'JetBrains Mono', monospace; color: var(--yellow); font-size: 20px; margin-bottom: 6px; }
+  .login-box p { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  input, select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 9px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus { border-color: var(--yellow); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.15s;
+  }
+  .btn-primary { background: var(--yellow); color: #000; }
+  .btn-primary:hover { background: #ffd700; }
+  .btn-danger  { background: rgba(239,68,68,0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .btn-danger:hover { background: rgba(239,68,68,0.25); }
+  .btn-ghost   { background: var(--border); color: var(--text); }
+  .btn-ghost:hover { background: #2a2a40; }
+  .btn-sm  { padding: 5px 12px; font-size: 12px; }
+  .btn-full { width: 100%; justify-content: center; }
+
+  .login-error { color: var(--red); font-size: 12px; margin-top: 12px; display: none; }
+
+  #app { display: none; flex: 1; flex-direction: column; }
+  main { flex: 1; padding: 24px; max-width: 1400px; width: 100%; margin: 0 auto; }
+  .hidden { display: none !important; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+  .card-title { font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 16px; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
+  .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: var(--yellow); }
+  .stat-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { text-align: left; padding: 8px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 600; }
+  tbody tr { border-bottom: 1px solid rgba(30,30,50,0.8); transition: background 0.1s; }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  td { padding: 10px 12px; font-size: 13px; }
+  .mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; }
+  .badge-green  { background: rgba(34,197,94,0.12);  color: var(--green); }
+  .badge-red    { background: rgba(239,68,68,0.12);   color: var(--red); }
+  .badge-yellow { background: rgba(245,200,0,0.12);   color: var(--yellow); }
+  .badge-blue   { background: rgba(96,165,250,0.12);  color: var(--blue); }
+  .badge-gray   { background: rgba(96,96,160,0.12);   color: var(--muted); }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-actions { margin-top: 16px; display: flex; gap: 8px; }
+
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 200; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; width: 440px; max-width: 95vw; }
+  .modal h3 { font-size: 16px; margin-bottom: 6px; }
+  .modal p  { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+  .events-log {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    height: 400px;
+    overflow-y: auto;
+    padding: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  .log-entry { display: flex; gap: 12px; padding: 5px 0; border-bottom: 1px solid rgba(30,30,50,0.5); animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:translateY(0)} }
+  .log-time  { color: var(--muted); min-width: 80px; }
+  .log-level { min-width: 68px; }
+  .log-msg   { color: var(--text); flex: 1; word-break: break-word; }
+  .log-level.info     { color: var(--blue); }
+  .log-level.warning  { color: var(--yellow); }
+  .log-level.error    { color: var(--red); }
+  .log-level.critical { color: var(--red); font-weight: 700; }
+  .log-level.ws       { color: var(--green); }
+  .log-level.ws-sys   { color: var(--muted); }
+
+  .log-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .log-counter  { font-size: 12px; color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  .key-reveal { background: var(--bg); border: 1px solid var(--yellow); border-radius: 6px; padding: 12px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--yellow); word-break: break-all; margin: 12px 0; }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 </style>
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-card">
-    <div class="login-logo">
-      <h1>snapah <span>pow</span></h1>
-      <p>BTRFS Snapshot Manager</p>
-      <div class="login-bars">
-        <span style="background:#e8360a"></span>
-        <span style="background:#f5c800"></span>
-        <span style="background:#22a64a"></span>
-      </div>
+<header>
+  <div class="logo">snapah<span>·</span>pow</div>
+  <nav class="nav-tabs" id="nav-tabs" style="display:none">
+    <div class="tab active" onclick="showTab('dashboard',this)">📊 Dashboard</div>
+    <div class="tab" onclick="showTab('snapshots',this)">📸 Snapshots</div>
+    <div class="tab" onclick="showTab('nodes',this)">🖥️ Nodos</div>
+    <div class="tab" onclick="showTab('policies',this)">📅 Políticas</div>
+    <div class="tab" onclick="showTab('events',this)">📋 Eventos</div>
+    <div class="tab" onclick="showTab('replication',this)">🔄 Replicación</div>
+    <div class="tab" onclick="showTab('alerts',this)">🔔 Alertas</div>
+    <div class="tab" onclick="showTab('apikeys',this)">🔑 API Keys</div>
+  </nav>
+  <div class="header-right">
+    <div class="ws-indicator">
+      <div class="ws-dot" id="ws-dot"></div>
+      <span id="ws-label">WS</span>
     </div>
-    <input type="text" id="username" placeholder="Usuario" autocomplete="username">
-    <input type="password" id="password" placeholder="Contrasena" autocomplete="current-password">
-    <button class="btn" onclick="login()">Entrar</button>
-    <div id="login-error" class="error-msg hidden"></div>
+    <div class="user-badge" id="user-badge" style="display:none">
+      <span id="username-display"></span>
+    </div>
+    <button class="btn btn-ghost btn-sm" id="logout-btn" style="display:none" onclick="logout()">Salir</button>
+  </div>
+</header>
+
+<div id="login-screen">
+  <div class="login-box">
+    <h2>snapah pow</h2>
+    <p>Gestor centralizado de snapshots BTRFS</p>
+    <div class="form-group">
+      <label>Usuario</label>
+      <input id="login-user" placeholder="admin" value="admin">
+    </div>
+    <div class="form-group">
+      <label>Contraseña</label>
+      <input id="login-pass" type="password" placeholder="••••••••" value="admin123"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="doLogin()">Iniciar sesión</button>
+    <div class="login-error" id="login-error"></div>
   </div>
 </div>
 
-<!-- APP -->
 <div id="app">
-  <header>
-    <div class="logo">snapah <span>pow</span></div>
-    <div class="header-right">
-      <div class="user-badge">Usuario: <b id="header-user"></b> (<span id="header-role"></span>)</div>
-      <button class="logout-btn" onclick="logout()">Cerrar sesion</button>
-    </div>
-  </header>
-  <nav>
-    <div class="tab active" onclick="showTab('dashboard',this)">Dashboard</div>
-    <div class="tab" onclick="showTab('snapshots',this)">Snapshots</div>
-    <div class="tab" onclick="showTab('nodes',this)">Nodos</div>
-    <div class="tab" onclick="showTab('policies',this)">Politicas</div>
-    <div class="tab" onclick="showTab('events',this)">Eventos</div>
-    <div class="tab" onclick="showTab('replication',this)">Replicacion</div>
-    <div class="tab" onclick="showTab('alerts',this)">Alertas</div>
-    <div class="tab" onclick="showTab('apikeys',this)">API Keys</div>
-  </nav>
-  <main>
+<main>
 
-    <!-- DASHBOARD -->
-    <div id="tab-dashboard">
-      <div class="accent-bar"><span></span><span></span><span></span></div>
-      <div class="stats">
-        <div class="stat-card"><div class="label">Nodos</div><div class="value green" id="stat-nodes">-</div></div>
-        <div class="stat-card"><div class="label">Snapshots</div><div class="value yellow" id="stat-snaps">-</div></div>
-        <div class="stat-card"><div class="label">Politicas activas</div><div class="value" id="stat-policies">-</div></div>
-        <div class="stat-card"><div class="label">Estado servidor</div><div class="value green" style="font-size:18px"><span class="dot dot-green"></span>Online</div></div>
-      </div>
-      <div class="card"><div class="card-title">Nodos registrados</div><div id="dash-nodes-list"></div></div>
-      <div class="card"><div class="card-title">Snapshots recientes</div><div id="dash-snaps-list"></div></div>
+  <!-- Dashboard -->
+  <div id="tab-dashboard">
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Nodos</div><div class="stat-value" id="stat-nodes">—</div><div class="stat-sub">registrados</div></div>
+      <div class="stat-card"><div class="stat-label">Snapshots</div><div class="stat-value" id="stat-snaps">—</div><div class="stat-sub">totales</div></div>
+      <div class="stat-card"><div class="stat-label">Políticas</div><div class="stat-value" id="stat-policies">—</div><div class="stat-sub">configuradas</div></div>
+      <div class="stat-card"><div class="stat-label">Eventos</div><div class="stat-value" id="stat-events">—</div><div class="stat-sub">recientes</div></div>
+      <div class="stat-card"><div class="stat-label">WS clientes</div><div class="stat-value" id="stat-ws">0</div><div class="stat-sub">conectados</div></div>
     </div>
 
-    <!-- SNAPSHOTS -->
-    <div id="tab-snapshots" class="hidden">
-      <div class="card">
-        <div class="card-title">Crear snapshot</div>
-        <div class="form-grid">
-          <div class="form-group"><label>Nodo ID</label><input id="snap-node" placeholder="uuid del nodo"></div>
-          <div class="form-group"><label>Nombre</label><input id="snap-name" placeholder="mi-backup"></div>
-          <div class="form-group"><label>Ruta subvolumen</label><input id="snap-path" placeholder="/mnt/datos"></div>
-          <div class="form-group"><label>Solo lectura</label><select id="snap-ro"><option value="true">Si (recomendado)</option><option value="false">No</option></select></div>
-        </div>
-        <div class="form-actions"><button class="btn btn-sm" onclick="createSnapshot()">Crear snapshot</button></div>
-        <div id="snap-msg" style="margin-top:10px;font-size:13px;"></div>
-      </div>
-      <div class="card">
-        <div class="card-title"><span>Todos los snapshots</span><button class="btn btn-sm" onclick="loadSnapshots()">Actualizar</button></div>
-        <div id="snaps-table"></div>
+    <div class="card">
+      <div class="card-title">Últimos snapshots</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Path</th><th>Estado</th><th>Creado</th><th>Acción</th></tr></thead>
+          <tbody id="dash-snaps-tbody"><tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">Cargando...</td></tr></tbody>
+        </table>
       </div>
     </div>
 
-    <!-- NODOS -->
-    <div id="tab-nodes" class="hidden">
-      <div class="card">
-        <div class="card-title"><span>Nodos registrados</span><button class="btn btn-sm" onclick="loadNodes()">Actualizar</button></div>
-        <div id="nodes-table"></div>
-      </div>
-    </div>
-
-    <!-- POLITICAS -->
-    <div id="tab-policies" class="hidden">
-      <div class="card">
-        <div class="card-title">Nueva politica de snapshot</div>
-        <div class="form-grid">
-          <div class="form-group"><label>Nombre</label><input id="pol-name" placeholder="diario-produccion"></div>
-          <div class="form-group"><label>Nodo ID</label><input id="pol-node" placeholder="uuid del nodo"></div>
-          <div class="form-group"><label>Ruta subvolumen</label><input id="pol-path" placeholder="/mnt/datos"></div>
-          <div class="form-group"><label>Schedule (cron)</label><input id="pol-schedule" value="0 2 * * *"></div>
-          <div class="form-group"><label>Retencion diaria</label><input id="pol-daily" type="number" value="7" min="1"></div>
-          <div class="form-group"><label>Retencion semanal</label><input id="pol-weekly" type="number" value="4" min="1"></div>
-        </div>
-        <div class="form-actions"><button class="btn btn-sm" onclick="createPolicy()">Crear politica</button></div>
-        <div id="pol-msg" style="margin-top:10px;font-size:13px;"></div>
-      </div>
-      <div class="card">
-        <div class="card-title"><span>Politicas activas</span><button class="btn btn-sm" onclick="loadPolicies()">Actualizar</button></div>
-        <div id="policies-table"></div>
-      </div>
-    </div>
-
-    <!-- EVENTOS -->
-    <div id="tab-events" class="hidden">
-      <div class="card">
-        <div class="card-title"><span>Eventos recientes</span><button class="btn btn-sm" onclick="loadEvents()">Actualizar</button></div>
-        <div id="events-list"></div>
-      </div>
-    </div>
-
-    <!-- REPLICACION -->
-    <div id="tab-replication" class="hidden">
-      <div class="card">
-        <div class="card-title">Replicar snapshot a otro nodo</div>
-        <div class="form-grid">
-          <div class="form-group"><label>ID del Snapshot</label><input id="repl-snap-id" placeholder="uuid del snapshot"></div>
-          <div class="form-group"><label>Nodo destino ID</label><input id="repl-target-node" placeholder="uuid del nodo destino"></div>
-          <div class="form-group"><label>Direccion del nodo destino</label><input id="repl-target-addr" placeholder="192.168.1.10:9091"></div>
-          <div class="form-group"><label>Ruta destino</label><input id="repl-dest-path" placeholder="/mnt/backup"></div>
-          <div class="form-group"><label>Snapshot padre (incremental, opcional)</label><input id="repl-parent" placeholder="/ruta/snapshot/padre"></div>
-        </div>
-        <div class="form-actions"><button class="btn btn-sm" onclick="startReplication()">Iniciar replicacion</button></div>
-        <div id="repl-msg" style="margin-top:10px;font-size:13px;"></div>
-      </div>
-      <div class="card">
-        <div class="card-title"><span>Jobs de replicacion</span><button class="btn btn-sm" onclick="loadReplicationJobs()">Actualizar</button></div>
-        <div id="repl-jobs-table"></div>
-      </div>
-    </div>
-
-    <!-- ALERTAS -->
-    <div id="tab-alerts" class="hidden">
-      <div class="card">
-        <div class="card-title">Estado de canales de alerta</div>
-        <div id="alerts-config-status"><div style="color:var(--muted);font-size:13px;">Cargando...</div></div>
-        <div class="code-block" style="margin-top:16px;">
-          <div><span style="color:var(--yellow);">ALERT_EMAIL_TO</span>=admin@tudominio.com</div>
-          <div><span style="color:var(--yellow);">SMTP_HOST</span>=smtp.gmail.com</div>
-          <div><span style="color:var(--yellow);">SMTP_USERNAME</span>=tu@gmail.com</div>
-          <div><span style="color:var(--yellow);">SMTP_PASSWORD</span>=app_password</div>
-          <div><span style="color:var(--green);">ALERT_WEBHOOK_URL</span>=https://hooks.slack.com/services/xxx</div>
+    <div class="card">
+      <div class="log-controls">
+        <div class="card-title" style="margin:0">🔴 Eventos en tiempo real</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="log-counter" id="live-count">0 eventos</span>
+          <button class="btn btn-ghost btn-sm" onclick="clearLiveLog()">Limpiar</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleAutoscroll()" id="autoscroll-btn">⬇ Auto</button>
         </div>
       </div>
-      <div class="card">
-        <div class="card-title">Enviar alerta de prueba</div>
-        <div class="form-grid">
-          <div class="form-group"><label>Nivel</label><select id="alert-level"><option value="info">info</option><option value="warning">warning</option><option value="error" selected>error</option><option value="critical">critical</option></select></div>
-          <div class="form-group"><label>Titulo</label><input id="alert-title" value="Alerta de prueba"></div>
-          <div class="form-group" style="grid-column:1/-1"><label>Mensaje</label><input id="alert-msg" value="Test desde la Web UI de snapah-pow"></div>
-        </div>
-        <div class="form-actions"><button class="btn btn-sm" onclick="sendTestAlert()">Enviar alerta de prueba</button></div>
-        <div id="alert-result" style="margin-top:12px;font-size:13px;"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Eventos que disparan alertas automaticas</div>
-        <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;">
-          <div><span class="badge badge-red">critical</span>&nbsp;&nbsp;Nodo offline por mas de 2 minutos</div>
-          <div><span class="badge badge-green">info</span>&nbsp;&nbsp;Nodo recuperado y online</div>
-          <div><span class="badge badge-red">error</span>&nbsp;&nbsp;Snapshot automatico fallido</div>
-          <div><span class="badge badge-red">error</span>&nbsp;&nbsp;Replicacion fallida</div>
+      <div class="events-log" id="live-log">
+        <div class="log-entry">
+          <span class="log-time">--:--:--</span>
+          <span class="log-level ws-sys">SYS</span>
+          <span class="log-msg">Iniciando conexión WebSocket...</span>
         </div>
       </div>
     </div>
+  </div>
 
-
-    <!-- API KEYS -->
-    <div id="tab-apikeys" class="hidden">
-      <div class="card">
-        <div class="card-title">Nueva API Key</div>
-        <div class="form-grid">
-          <div class="form-group"><label>Nombre</label><input id="key-name" placeholder="mi-script-backup"></div>
-          <div class="form-group"><label>Rol</label><select id="key-role"><option value="operator">operator</option><option value="admin">admin</option><option value="viewer">viewer</option></select></div>
-          <div class="form-group"><label>Expira en (dias, 0 = nunca)</label><input id="key-expires" type="number" value="0" min="0"></div>
-        </div>
-        <div class="form-actions"><button class="btn btn-sm" onclick="createAPIKey()">Generar API Key</button></div>
-        <div id="key-result" style="margin-top:14px;"></div>
-      </div>
-      <div class="card">
-        <div class="card-title"><span>API Keys activas</span><button class="btn btn-sm" onclick="loadAPIKeys()">Actualizar</button></div>
-        <div style="font-size:13px;color:var(--muted);margin-bottom:16px;">
-          Usa la key con el header <code style="background:var(--surface);padding:2px 8px;border-radius:4px;color:var(--yellow);">X-API-Key: spow_...</code> o como <code style="background:var(--surface);padding:2px 8px;border-radius:4px;color:var(--yellow);">Authorization: Bearer spow_...</code>
-        </div>
-        <div id="apikeys-table"></div>
+  <!-- Snapshots -->
+  <div id="tab-snapshots" class="hidden">
+    <div class="card">
+      <div class="card-title">Todos los snapshots</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Nodo</th><th>Path</th><th>RO</th><th>Estado</th><th>Creado</th><th>Acción</th></tr></thead>
+          <tbody id="snaps-tbody"><tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">Cargando...</td></tr></tbody>
+        </table>
       </div>
     </div>
-  </main>
+    <div class="card">
+      <div class="card-title">Crear snapshot manual</div>
+      <div class="form-grid">
+        <div class="form-group"><label>ID del nodo</label><input id="snap-node-id" placeholder="node-uuid"></div>
+        <div class="form-group"><label>Path subvolumen</label><input id="snap-path" placeholder="/home" value="/home"></div>
+        <div class="form-group" style="grid-column:1/-1;display:flex;align-items:center;gap:8px">
+          <input type="checkbox" id="snap-ro" style="width:auto" checked>
+          <label for="snap-ro" style="margin:0;text-transform:none;font-size:13px">Solo lectura (recomendado)</label>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="createSnapshot()">📸 Crear snapshot</button>
+      </div>
+      <div id="snap-result" style="margin-top:12px;font-size:13px;font-family:monospace"></div>
+    </div>
+  </div>
+
+  <!-- Nodos -->
+  <div id="tab-nodes" class="hidden">
+    <div class="card">
+      <div class="card-title">Nodos registrados</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Hostname</th><th>Dirección</th><th>OS</th><th>Estado</th><th>Último visto</th></tr></thead>
+          <tbody id="nodes-tbody"><tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Políticas -->
+  <div id="tab-policies" class="hidden">
+    <div class="card">
+      <div class="card-title">Políticas de retención</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nombre</th><th>Nodo</th><th>Schedule</th><th>Path</th><th>Retención</th><th>Estado</th></tr></thead>
+          <tbody id="policies-tbody"><tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Crear política</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Nombre</label><input id="pol-name" placeholder="daily-home"></div>
+        <div class="form-group"><label>ID del nodo</label><input id="pol-node" placeholder="node-uuid"></div>
+        <div class="form-group"><label>Schedule (cron)</label><input id="pol-schedule" value="0 2 * * *"></div>
+        <div class="form-group"><label>Path</label><input id="pol-path" value="/home"></div>
+        <div class="form-group"><label>Retención diaria</label><input id="pol-daily" type="number" value="7"></div>
+        <div class="form-group"><label>Retención semanal</label><input id="pol-weekly" type="number" value="4"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="createPolicy()">📅 Crear política</button>
+      </div>
+      <div id="pol-result" style="margin-top:12px;font-size:13px;font-family:monospace"></div>
+    </div>
+  </div>
+
+  <!-- Eventos -->
+  <div id="tab-events" class="hidden">
+    <div class="card">
+      <div class="log-controls">
+        <div class="card-title" style="margin:0">Log de eventos</div>
+        <button class="btn btn-ghost btn-sm" onclick="loadEvents()">↻ Actualizar</button>
+      </div>
+      <div style="margin-top:12px">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tipo</th><th>Mensaje</th><th>Severidad</th><th>Hora</th></tr></thead>
+            <tbody id="events-tbody"><tr><td colspan="4" style="color:var(--muted);text-align:center;padding:20px">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Replicación -->
+  <div id="tab-replication" class="hidden">
+    <div class="card">
+      <div class="card-title">Jobs de replicación</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Snapshot</th><th>Nodo destino</th><th>Estado</th><th>Creado</th></tr></thead>
+          <tbody id="repl-tbody"><tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Nueva replicación</div>
+      <div class="form-grid">
+        <div class="form-group"><label>ID del snapshot</label><input id="repl-snap-id" placeholder="snapshot-uuid"></div>
+        <div class="form-group"><label>Nodo destino</label><input id="repl-target-node" placeholder="node-uuid-destino"></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Path destino</label><input id="repl-target-path" value="/mnt/backup"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="startReplication()">🔄 Iniciar replicación</button>
+      </div>
+      <div id="repl-result" style="margin-top:12px;font-size:13px;font-family:monospace"></div>
+    </div>
+  </div>
+
+  <!-- Alertas -->
+  <div id="tab-alerts" class="hidden">
+    <div class="card">
+      <div class="card-title">Configuración de alertas</div>
+      <div id="alerts-config-status"><div style="color:var(--muted)">Cargando...</div></div>
+      <div style="margin-top:16px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:16px;font-family:monospace;font-size:12px;line-height:2.2">
+        <div><span style="color:var(--yellow)">ALERT_EMAIL_TO</span>=admin@tudominio.com</div>
+        <div><span style="color:var(--yellow)">SMTP_HOST</span>=smtp.gmail.com</div>
+        <div><span style="color:var(--yellow)">SMTP_USERNAME</span>=tu@gmail.com</div>
+        <div><span style="color:var(--yellow)">SMTP_PASSWORD</span>=app_password</div>
+        <div><span style="color:var(--green)">ALERT_WEBHOOK_URL</span>=https://hooks.slack.com/services/xxx</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Enviar alerta de prueba</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nivel</label>
+          <select id="alert-level">
+            <option value="info">info</option>
+            <option value="warning">warning</option>
+            <option value="error" selected>error</option>
+            <option value="critical">critical</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Título</label><input id="alert-title" value="Alerta de prueba"></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Mensaje</label><input id="alert-msg" value="Test desde la Web UI"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="sendTestAlert()">🔔 Enviar alerta</button>
+      </div>
+      <div id="alert-result" style="margin-top:12px;font-size:13px"></div>
+    </div>
+  </div>
+
+  <!-- API Keys -->
+  <div id="tab-apikeys" class="hidden">
+    <div class="card">
+      <div class="card-title">API Keys activas</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nombre</th><th>Prefijo</th><th>Rol</th><th>Creada</th><th>Último uso</th><th>Acción</th></tr></thead>
+          <tbody id="keys-tbody"><tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Crear nueva API Key</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Nombre</label><input id="key-name" placeholder="ci-pipeline"></div>
+        <div class="form-group">
+          <label>Rol</label>
+          <select id="key-role">
+            <option value="viewer">viewer</option>
+            <option value="operator" selected>operator</option>
+            <option value="admin">admin</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Expira en días (0=nunca)</label><input id="key-expires" type="number" value="90"></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="createAPIKey()">🔑 Crear API Key</button>
+      </div>
+      <div id="key-result" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+</main>
 </div>
 
-<!-- MODAL RESTORE -->
-<div id="restore-modal" class="modal-overlay">
-  <div class="modal-box">
-    <h3>Restaurar Snapshot</h3>
-    <div class="warning-box">Advertencia: el restore crea una copia writable del snapshot en la ruta destino. No sobreescribe datos existentes.</div>
-    <div class="form-group" style="margin-bottom:14px;"><label>Snapshot a restaurar</label><input id="restore-snap-path" readonly style="color:var(--muted);font-family:monospace;font-size:12px;"></div>
-    <div class="form-group" style="margin-bottom:20px;"><label>Ruta de destino</label><input id="restore-dest" placeholder="/mnt/datos_restaurado"></div>
-    <div style="display:flex;gap:10px;">
-      <button class="btn" onclick="confirmRestore()" style="flex:1;">Confirmar restore</button>
-      <button class="btn" onclick="closeRestoreModal()" style="flex:1;background:var(--surface);">Cancelar</button>
+<!-- Restore Modal -->
+<div id="restore-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>↩ Restaurar snapshot</h3>
+    <p>Esto restaurará el subvolumen BTRFS al estado del snapshot. La operación no se puede deshacer.</p>
+    <div class="form-group">
+      <label>ID del snapshot</label>
+      <input id="restore-snap-id" readonly style="color:var(--yellow)">
     </div>
-    <div id="restore-modal-msg" style="margin-top:12px;font-size:13px;"></div>
+    <div class="form-group">
+      <label>Path destino</label>
+      <input id="restore-target" value="/home">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('restore-modal')">Cancelar</button>
+      <button class="btn btn-danger" onclick="doRestore()">⚠️ Restaurar</button>
+    </div>
+    <div id="restore-result" style="margin-top:12px;font-size:13px;font-family:monospace"></div>
   </div>
 </div>
 
 <script>
-const API='';
-let token=localStorage.getItem('snapah_token')||'';
-let currentUser=JSON.parse(localStorage.getItem('snapah_user')||'{}');
+let token = '';
+let ws = null;
+let wsTimer = null;
+let liveCount = 0;
+let autoscroll = true;
 
-async function login(){
-  const u=document.getElementById('username').value.trim();
-  const p=document.getElementById('password').value;
-  const err=document.getElementById('login-error');
-  err.classList.add('hidden');
-  try{
-    const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
-    const data=await r.json();
-    if(!r.ok){err.textContent=data.error||'Error de login';err.classList.remove('hidden');return;}
-    token=data.token;currentUser={username:data.username,role:data.role};
-    localStorage.setItem('snapah_token',token);localStorage.setItem('snapah_user',JSON.stringify(currentUser));
-    showApp();
-  }catch(e){err.textContent='No se pudo conectar al servidor';err.classList.remove('hidden');}
+// ── Login ─────────────────────────────────────────────────
+async function doLogin() {
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  const r = await fetch('/api/auth/login', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      username: document.getElementById('login-user').value,
+      password: document.getElementById('login-pass').value
+    })
+  });
+  const d = await r.json();
+  if (!r.ok) { errEl.textContent = d.error||'Error'; errEl.style.display='block'; return; }
+  token = d.token;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('nav-tabs').style.display = 'flex';
+  document.getElementById('user-badge').style.display = 'block';
+  document.getElementById('logout-btn').style.display = 'block';
+  document.getElementById('username-display').textContent = d.username + ' · ' + d.role;
+  connectWS();
+  loadDashboard();
 }
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('login-screen').style.display!=='none')login();});
-function logout(){token='';currentUser={};localStorage.removeItem('snapah_token');localStorage.removeItem('snapah_user');document.getElementById('app').style.display='none';document.getElementById('login-screen').style.display='flex';}
-function showApp(){document.getElementById('login-screen').style.display='none';document.getElementById('app').style.display='block';document.getElementById('header-user').textContent=currentUser.username;document.getElementById('header-role').textContent=currentUser.role;loadDashboard();}
 
-async function api(path,opts={}){
-  const r=await fetch(path,{...opts,headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json',...(opts.headers||{})}});
-  if(r.status===401){logout();return null;}
-  return r.json();
+function logout() {
+  token = '';
+  if (ws) ws.close();
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('nav-tabs').style.display = 'none';
+  document.getElementById('user-badge').style.display = 'none';
+  document.getElementById('logout-btn').style.display = 'none';
 }
 
-function showTab(name,el){
-  document.querySelectorAll('[id^="tab-"]').forEach(e=>e.classList.add('hidden'));
-  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
+// ── API ───────────────────────────────────────────────────
+async function api(path, opts={}) {
+  const r = await fetch(path, {
+    ...opts,
+    headers: {'Authorization':'Bearer '+token,'Content-Type':'application/json',...(opts.headers||{})}
+  });
+  if (r.status===401) { logout(); return null; }
+  return r.json().catch(()=>null);
+}
+
+// ── WebSocket ─────────────────────────────────────────────
+function connectWS() {
+  const proto = location.protocol==='https:'?'wss':'ws';
+  const dot   = document.getElementById('ws-dot');
+  const label = document.getElementById('ws-label');
+  dot.className = 'ws-dot';
+  label.textContent = 'conectando...';
+
+  ws = new WebSocket(`${proto}://${location.host}/ws/events`);
+
+  ws.onopen = () => {
+    dot.className = 'ws-dot connected';
+    label.textContent = 'live';
+    appendLog('ws','WebSocket conectado — eventos en tiempo real activos');
+    if (wsTimer) { clearTimeout(wsTimer); wsTimer=null; }
+  };
+
+  ws.onmessage = (e) => {
+    try {
+      const evt = JSON.parse(e.data);
+      const lvl = evt.payload?.level || 'info';
+      const msg = evt.payload?.message || evt.payload?.title || JSON.stringify(evt.payload).slice(0,120);
+      appendLog(lvl, '['+evt.type+'] '+msg);
+      if (evt.type==='snapshot.created'||evt.type==='node.status') updateStats();
+    } catch {}
+  };
+
+  ws.onerror = () => { dot.className='ws-dot error'; label.textContent='error'; };
+
+  ws.onclose = () => {
+    dot.className='ws-dot';
+    label.textContent='desconectado';
+    appendLog('warning','WebSocket desconectado. Reconectando en 5s...');
+    wsTimer = setTimeout(connectWS, 5000);
+  };
+}
+
+function appendLog(level, msg) {
+  const log  = document.getElementById('live-log');
+  const time = new Date().toTimeString().slice(0,8);
+  const el   = document.createElement('div');
+  el.className = 'log-entry';
+  el.innerHTML = `<span class="log-time">${time}</span><span class="log-level ${level}">${level.toUpperCase()}</span><span class="log-msg">${esc(msg)}</span>`;
+  log.appendChild(el);
+  liveCount++;
+  document.getElementById('live-count').textContent = liveCount+' eventos';
+  while (log.children.length>300) log.removeChild(log.firstChild);
+  if (autoscroll) log.scrollTop = log.scrollHeight;
+}
+
+function clearLiveLog() {
+  document.getElementById('live-log').innerHTML='';
+  liveCount=0;
+  document.getElementById('live-count').textContent='0 eventos';
+}
+
+function toggleAutoscroll() {
+  autoscroll=!autoscroll;
+  document.getElementById('autoscroll-btn').textContent=autoscroll?'⬇ Auto':'⏸ Pausa';
+}
+
+// ── Tabs ──────────────────────────────────────────────────
+const loaders = {
+  dashboard:loadDashboard, snapshots:loadSnapshots, nodes:loadNodes,
+  policies:loadPolicies, events:loadEvents, replication:loadReplicationJobs,
+  alerts:loadAlertConfig, apikeys:loadAPIKeys
+};
+
+function showTab(name, el) {
+  document.querySelectorAll('[id^="tab-"]').forEach(t=>t.classList.add('hidden'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+name).classList.remove('hidden');
-  if(el)el.classList.add('active');
-  if(name==='dashboard')loadDashboard();
-  if(name==='snapshots')loadSnapshots();
-  if(name==='nodes')loadNodes();
-  if(name==='policies')loadPolicies();
-  if(name==='events')loadEvents();
-  if(name==='replication')loadReplicationJobs();
-  if(name==='alerts')loadAlertConfig();
-  if(name==='apikeys')loadAPIKeys();
+  el.classList.add('active');
+  if (loaders[name]) loaders[name]();
 }
 
-function fmtDate(s){if(!s)return '-';try{return new Date(s).toLocaleString('es-CO',{hour12:false});}catch{return s;}}
-function severityBadge(s){return {info:'badge-green',warning:'badge-yellow',error:'badge-red',critical:'badge-red'}[s]||'badge-gray';}
-
-async function loadDashboard(){
-  const[nodes,snaps,pols]=await Promise.all([api('/api/nodes'),api('/api/snapshots'),api('/api/policies')]);
-  if(!nodes)return;
-  document.getElementById('stat-nodes').textContent=nodes.count||0;
-  document.getElementById('stat-snaps').textContent=snaps?.count||0;
-  document.getElementById('stat-policies').textContent=pols?.count||0;
-  const nl=document.getElementById('dash-nodes-list');
-  if(!nodes.nodes?.length){nl.innerHTML='<div class="empty">No hay nodos. Inicia snapah-agent en un servidor BTRFS.</div>';}
-  else{nl.innerHTML='<table><thead><tr><th>ID</th><th>Hostname</th><th>Direccion</th><th>Estado</th><th>Ultimo visto</th></tr></thead><tbody>'+nodes.nodes.map(n=>`<tr><td style="font-family:monospace;font-size:11px">${(n.id||'').slice(0,10)}...</td><td><b>${n.hostname}</b></td><td>${n.address}</td><td><span class="badge ${n.status==='online'?'badge-green':'badge-red'}">${n.status}</span></td><td style="color:var(--muted)">${fmtDate(n.last_seen)}</td></tr>`).join('')+'</tbody></table>';}
-  const sl=document.getElementById('dash-snaps-list');
-  const recent=snaps?.snapshots?.slice(0,5)||[];
-  if(!recent.length){sl.innerHTML='<div class="empty">No hay snapshots todavia.</div>';}
-  else{sl.innerHTML='<table><thead><tr><th>ID</th><th>Path</th><th>Estado</th><th>Creado</th><th></th></tr></thead><tbody>'+recent.map(s=>`<tr><td style="font-family:monospace;font-size:11px">${(s.id||'').slice(0,10)}...</td><td style="font-family:monospace;font-size:12px">${s.snapshot_path}</td><td><span class="badge badge-green">${s.status}</span></td><td style="color:var(--muted)">${fmtDate(s.created_at)}</td><td><button class="btn btn-sm btn-yellow" onclick="openRestoreModal('${s.id}','${s.snapshot_path}')">Restaurar</button></td></tr>`).join('')+'</tbody></table>';}
+// ── Dashboard ─────────────────────────────────────────────
+async function loadDashboard() {
+  updateStats();
+  const data = await api('/api/snapshots');
+  const tbody = document.getElementById('dash-snaps-tbody');
+  if (!data?.snapshots?.length) {
+    tbody.innerHTML='<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">Sin snapshots</td></tr>'; return;
+  }
+  tbody.innerHTML = data.snapshots.slice(0,8).map(s=>`
+    <tr>
+      <td class="mono">${(s.id||'').slice(0,8)}…</td>
+      <td class="mono">${s.snapshot_path||'—'}</td>
+      <td>${statusBadge(s.status)}</td>
+      <td class="mono">${fmt(s.created_at)}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="openRestoreModal('${s.id}')">↩ Restaurar</button></td>
+    </tr>`).join('');
 }
 
-async function loadSnapshots(){
-  const data=await api('/api/snapshots');if(!data)return;
-  const el=document.getElementById('snaps-table');
-  if(!data.snapshots?.length){el.innerHTML='<div class="empty">No hay snapshots.</div>';return;}
-  el.innerHTML='<table><thead><tr><th>ID</th><th>Nodo</th><th>Path</th><th>RO</th><th>Estado</th><th>Creado</th><th></th></tr></thead><tbody>'+
-    data.snapshots.map(s=>`<tr>
-      <td style="font-family:monospace;font-size:11px">${(s.id||'').slice(0,8)}...</td>
-      <td style="font-family:monospace;font-size:11px">${(s.node_id||'').slice(0,8)}...</td>
-      <td style="font-family:monospace;font-size:12px">${s.snapshot_path}</td>
-      <td><span class="badge ${s.is_readonly?'badge-yellow':'badge-gray'}">${s.is_readonly?'RO':'RW'}</span></td>
-      <td><span class="badge badge-green">${s.status}</span></td>
-      <td style="color:var(--muted)">${fmtDate(s.created_at)}</td>
-      <td style="display:flex;gap:6px;">
-        <button class="btn btn-sm btn-yellow" onclick="openRestoreModal('${s.id}','${s.snapshot_path}')">Restaurar</button>
-        <button class="btn btn-sm btn-danger" onclick="deleteSnapshot('${s.id}')">Eliminar</button>
-      </td>
-    </tr>`).join('')+'</tbody></table>';
+async function updateStats() {
+  const [n,s,p,e] = await Promise.all([api('/api/nodes'),api('/api/snapshots'),api('/api/policies'),api('/api/events')]);
+  if(n) document.getElementById('stat-nodes').textContent    = n.count??'—';
+  if(s) document.getElementById('stat-snaps').textContent    = s.count??'—';
+  if(p) document.getElementById('stat-policies').textContent = p.count??'—';
+  if(e) document.getElementById('stat-events').textContent   = e.events?.length??'—';
 }
 
-async function createSnapshot(){
-  const msg=document.getElementById('snap-msg');
-  const body={node_id:document.getElementById('snap-node').value.trim(),subvolume_path:document.getElementById('snap-path').value.trim(),snapshot_name:document.getElementById('snap-name').value.trim(),readonly:document.getElementById('snap-ro').value==='true'};
+// ── Snapshots ─────────────────────────────────────────────
+async function loadSnapshots() {
+  const data = await api('/api/snapshots');
+  const tbody = document.getElementById('snaps-tbody');
+  if (!data?.snapshots?.length) {
+    tbody.innerHTML='<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:20px">Sin snapshots</td></tr>'; return;
+  }
+  tbody.innerHTML = data.snapshots.map(s=>`
+    <tr>
+      <td class="mono">${(s.id||'').slice(0,8)}…</td>
+      <td class="mono">${(s.node_id||'').slice(0,8)}…</td>
+      <td class="mono">${s.snapshot_path||'—'}</td>
+      <td>${s.is_readonly?'<span class="badge badge-blue">RO</span>':'<span class="badge badge-gray">RW</span>'}</td>
+      <td>${statusBadge(s.status)}</td>
+      <td class="mono">${fmt(s.created_at)}</td>
+      <td><button class="btn btn-primary btn-sm" onclick="openRestoreModal('${s.id}')">↩ Restaurar</button></td>
+    </tr>`).join('');
+}
+
+async function createSnapshot() {
+  const el=document.getElementById('snap-result');
+  const body={node_id:document.getElementById('snap-node-id').value.trim(),
+    subvolume_path:document.getElementById('snap-path').value.trim(),
+    is_readonly:document.getElementById('snap-ro').checked};
+  if(!body.node_id){el.style.color='var(--red)';el.textContent='⚠ Ingresa el ID del nodo';return;}
   const r=await fetch('/api/snapshots',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const data=await r.json();
-  if(r.ok){msg.style.color='var(--green)';msg.textContent='Snapshot creado: '+data.snapshot_path;loadSnapshots();}
-  else{msg.style.color='var(--red)';msg.textContent='Error: '+(data.error||'fallo al crear snapshot');}
+  const d=await r.json();
+  if(r.ok){el.style.color='var(--green)';el.textContent='✅ Snapshot creado: '+(d.snapshot?.id||'OK').slice(0,8);loadSnapshots();}
+  else{el.style.color='var(--red)';el.textContent='❌ '+(d.error||'Error');}
 }
 
-async function deleteSnapshot(id){
-  if(!confirm('Eliminar este snapshot?'))return;
-  const r=await fetch('/api/snapshots/delete',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({snapshot_id:id,force:false})});
-  const data=await r.json();
-  if(data.success)loadSnapshots();
-  else alert('Error: '+data.message);
+// ── Restore ───────────────────────────────────────────────
+function openRestoreModal(id) {
+  document.getElementById('restore-snap-id').value=id;
+  document.getElementById('restore-result').textContent='';
+  document.getElementById('restore-modal').classList.remove('hidden');
+}
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+async function doRestore() {
+  const snapId=document.getElementById('restore-snap-id').value;
+  const target=document.getElementById('restore-target').value.trim();
+  const el=document.getElementById('restore-result');
+  const r=await fetch('/api/restore',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({snapshot_id:snapId,target_path:target})});
+  const d=await r.json();
+  if(r.ok){el.style.color='var(--green)';el.textContent='✅ Restauración iniciada';appendLog('info','Restore: '+snapId.slice(0,8)+' → '+target);setTimeout(()=>closeModal('restore-modal'),2000);}
+  else{el.style.color='var(--red)';el.textContent='❌ '+(d.error||'Error en restore');}
 }
 
-async function loadNodes(){
-  const data=await api('/api/nodes');if(!data)return;
-  const el=document.getElementById('nodes-table');
-  if(!data.nodes?.length){el.innerHTML='<div class="empty">No hay nodos. Inicia snapah-agent.</div>';return;}
-  el.innerHTML='<table><thead><tr><th>ID</th><th>Hostname</th><th>Direccion</th><th>Estado</th><th>Ultimo heartbeat</th></tr></thead><tbody>'+
-    data.nodes.map(n=>`<tr><td style="font-family:monospace;font-size:12px">${n.id}</td><td><b>${n.hostname}</b></td><td>${n.address}</td><td><span class="dot ${n.status==='online'?'dot-green':'dot-red'}"></span>${n.status}</td><td style="color:var(--muted)">${fmtDate(n.last_seen)}</td></tr>`).join('')+'</tbody></table>';
+// ── Nodes ─────────────────────────────────────────────────
+async function loadNodes() {
+  const data=await api('/api/nodes');
+  const tbody=document.getElementById('nodes-tbody');
+  if(!data?.nodes?.length){tbody.innerHTML='<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">Sin nodos</td></tr>';return;}
+  tbody.innerHTML=data.nodes.map(n=>`
+    <tr>
+      <td class="mono">${(n.id||'').slice(0,8)}…</td>
+      <td>${n.hostname||'—'}</td>
+      <td class="mono">${n.address||'—'}</td>
+      <td>${n.os_info||'—'}</td>
+      <td>${statusBadge(n.status)}</td>
+      <td class="mono">${fmt(n.last_seen)}</td>
+    </tr>`).join('');
 }
 
-async function loadPolicies(){
-  const data=await api('/api/policies');if(!data)return;
-  const el=document.getElementById('policies-table');
-  if(!data.policies?.length){el.innerHTML='<div class="empty">No hay politicas configuradas.</div>';return;}
-  el.innerHTML='<table><thead><tr><th>Nombre</th><th>Schedule</th><th>Path</th><th>Retencion</th><th>Estado</th></tr></thead><tbody>'+
-    data.policies.map(p=>`<tr><td><b>${p.name}</b></td><td style="font-family:monospace">${p.schedule}</td><td style="font-family:monospace;font-size:12px">${p.subvolume_path}</td><td>${p.retention_daily}d/${p.retention_weekly}w</td><td><span class="badge ${p.enabled?'badge-green':'badge-gray'}">${p.enabled?'Activa':'Pausada'}</span></td></tr>`).join('')+'</tbody></table>';
+// ── Policies ──────────────────────────────────────────────
+async function loadPolicies() {
+  const data=await api('/api/policies');
+  const tbody=document.getElementById('policies-tbody');
+  if(!data?.policies?.length){tbody.innerHTML='<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">Sin políticas</td></tr>';return;}
+  tbody.innerHTML=data.policies.map(p=>`
+    <tr>
+      <td>${p.name||'—'}</td>
+      <td class="mono">${(p.node_id||'').slice(0,8)}…</td>
+      <td class="mono">${p.schedule||'—'}</td>
+      <td class="mono">${p.subvolume_path||'—'}</td>
+      <td class="mono">${p.retention_daily}d/${p.retention_weekly}w</td>
+      <td>${p.enabled?'<span class="badge badge-green">Activa</span>':'<span class="badge badge-gray">Inactiva</span>'}</td>
+    </tr>`).join('');
 }
 
-async function createPolicy(){
-  const msg=document.getElementById('pol-msg');
-  const body={name:document.getElementById('pol-name').value.trim(),node_id:document.getElementById('pol-node').value.trim(),subvolume_path:document.getElementById('pol-path').value.trim(),schedule:document.getElementById('pol-schedule').value.trim(),retention_daily:parseInt(document.getElementById('pol-daily').value)||7,retention_weekly:parseInt(document.getElementById('pol-weekly').value)||4,readonly:true,enabled:true};
+async function createPolicy() {
+  const el=document.getElementById('pol-result');
+  const body={name:document.getElementById('pol-name').value.trim(),node_id:document.getElementById('pol-node').value.trim(),
+    schedule:document.getElementById('pol-schedule').value.trim(),subvolume_path:document.getElementById('pol-path').value.trim(),
+    retention_daily:parseInt(document.getElementById('pol-daily').value)||7,
+    retention_weekly:parseInt(document.getElementById('pol-weekly').value)||4,enabled:true};
   const r=await fetch('/api/policies',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const data=await r.json();
-  if(r.ok){msg.style.color='var(--green)';msg.textContent='Politica creada: '+data.name;loadPolicies();}
-  else{msg.style.color='var(--red)';msg.textContent='Error: '+(data.error||'fallo');}
+  const d=await r.json();
+  if(r.ok){el.style.color='var(--green)';el.textContent='✅ Política creada';loadPolicies();}
+  else{el.style.color='var(--red)';el.textContent='❌ '+(d.error||'Error');}
 }
 
-async function loadEvents(){
-  const data=await api('/api/events');if(!data)return;
-  const el=document.getElementById('events-list');
-  if(!data.events?.length){el.innerHTML='<div class="empty">No hay eventos registrados.</div>';return;}
-  el.innerHTML='<table><thead><tr><th>Tipo</th><th>Mensaje</th><th>Severidad</th><th>Hora</th></tr></thead><tbody>'+
-    data.events.map(e=>`<tr><td style="font-family:monospace;font-size:12px">${e.type}</td><td>${e.message}</td><td><span class="badge ${severityBadge(e.severity)}">${e.severity||'info'}</span></td><td style="color:var(--muted)">${fmtDate(e.created_at)}</td></tr>`).join('')+'</tbody></table>';
+// ── Events ────────────────────────────────────────────────
+async function loadEvents() {
+  const data=await api('/api/events');
+  const tbody=document.getElementById('events-tbody');
+  if(!data?.events?.length){tbody.innerHTML='<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:20px">Sin eventos</td></tr>';return;}
+  tbody.innerHTML=data.events.map(e=>`
+    <tr>
+      <td class="mono">${e.type||'—'}</td>
+      <td>${e.message||'—'}</td>
+      <td>${severityBadge(e.severity)}</td>
+      <td class="mono">${fmt(e.created_at)}</td>
+    </tr>`).join('');
 }
 
-async function startReplication(){
-  const msg=document.getElementById('repl-msg');
-  const body={snapshot_id:document.getElementById('repl-snap-id').value.trim(),target_node_id:document.getElementById('repl-target-node').value.trim(),target_address:document.getElementById('repl-target-addr').value.trim(),target_dest_path:document.getElementById('repl-dest-path').value.trim(),parent_path:document.getElementById('repl-parent').value.trim()};
-  if(!body.snapshot_id||!body.target_address){msg.style.color='var(--red)';msg.textContent='Snapshot ID y direccion destino son requeridos';return;}
+// ── Replication ───────────────────────────────────────────
+async function loadReplicationJobs() {
+  const data=await api('/api/replication/jobs');
+  const tbody=document.getElementById('repl-tbody');
+  if(!data?.jobs?.length){tbody.innerHTML='<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">Sin jobs</td></tr>';return;}
+  tbody.innerHTML=data.jobs.map(j=>`
+    <tr>
+      <td class="mono">${(j.id||'').slice(0,8)}…</td>
+      <td class="mono">${(j.snapshot_id||'').slice(0,8)}…</td>
+      <td class="mono">${(j.target_node_id||'').slice(0,8)}…</td>
+      <td>${statusBadge(j.status)}</td>
+      <td class="mono">${fmt(j.created_at)}</td>
+    </tr>`).join('');
+}
+
+async function startReplication() {
+  const el=document.getElementById('repl-result');
+  const body={snapshot_id:document.getElementById('repl-snap-id').value.trim(),
+    target_node_id:document.getElementById('repl-target-node').value.trim(),
+    target_path:document.getElementById('repl-target-path').value.trim()};
   const r=await fetch('/api/replicate',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const data=await r.json();
-  if(r.ok){msg.style.color='var(--green)';msg.textContent='Replicacion iniciada. Job ID: '+data.job_id;setTimeout(loadReplicationJobs,1000);}
-  else{msg.style.color='var(--red)';msg.textContent='Error: '+(data.error||'fallo');}
+  const d=await r.json();
+  if(r.ok){el.style.color='var(--green)';el.textContent='✅ Replicación iniciada';}
+  else{el.style.color='var(--red)';el.textContent='❌ '+(d.error||'Error');}
 }
 
-async function loadReplicationJobs(){
-  const data=await api('/api/replication/jobs');if(!data)return;
-  const el=document.getElementById('repl-jobs-table');
-  if(!data.jobs?.length){el.innerHTML='<div class="empty">No hay jobs de replicacion.</div>';return;}
-  const bmap={pending:'badge-gray',running:'badge-yellow',done:'badge-green',failed:'badge-red'};
-  el.innerHTML='<table><thead><tr><th>Job ID</th><th>Snapshot</th><th>Destino</th><th>Estado</th><th>Iniciado</th><th>Error</th></tr></thead><tbody>'+
-    data.jobs.map(j=>`<tr><td style="font-family:monospace;font-size:11px">${(j.ID||'').slice(0,8)}...</td><td style="font-family:monospace;font-size:11px">${(j.SnapshotID||'').slice(0,8)}...</td><td>${j.TargetAddress}</td><td><span class="badge ${bmap[j.Status]||'badge-gray'}">${j.Status}</span></td><td style="color:var(--muted)">${fmtDate(j.StartedAt)}</td><td style="color:var(--red);font-size:11px">${j.Error||''}</td></tr>`).join('')+'</tbody></table>';
+// ── Alerts ────────────────────────────────────────────────
+async function loadAlertConfig() {
+  const data=await api('/api/alerts/config');
+  if(!data) return;
+  document.getElementById('alerts-config-status').innerHTML=`
+    <div style="display:flex;gap:12px;margin-top:8px">
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 20px;flex:1;text-align:center">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">EMAIL</div>
+        <span class="badge ${data.email_enabled?'badge-green':'badge-gray'}">${data.email_enabled?'Activo':'Inactivo'}</span>
+        ${data.email_enabled?`<div style="font-size:11px;color:var(--muted);margin-top:6px">${data.smtp_from}</div>`:''}
+      </div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px 20px;flex:1;text-align:center">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:6px">WEBHOOK</div>
+        <span class="badge ${data.webhook_enabled?'badge-green':'badge-gray'}">${data.webhook_enabled?'Activo':'Inactivo'}</span>
+      </div>
+    </div>`;
 }
 
-async function loadAlertConfig(){
-  const data=await api('/api/alerts/config');if(!data)return;
-  const el=document.getElementById('alerts-config-status');
-  el.innerHTML=`<div style="display:flex;gap:16px;margin-top:8px;">
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 20px;flex:1;text-align:center;">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">EMAIL</div>
-      <span class="badge ${data.email_enabled?'badge-green':'badge-gray'}">${data.email_enabled?'Activo':'Inactivo'}</span>
-      ${data.email_enabled?'<div style="font-size:11px;color:var(--muted);margin-top:6px;">'+data.smtp_from+'</div>':''}
-    </div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 20px;flex:1;text-align:center;">
-      <div style="font-size:11px;color:var(--muted);margin-bottom:4px;">WEBHOOK</div>
-      <span class="badge ${data.webhook_enabled?'badge-green':'badge-gray'}">${data.webhook_enabled?'Activo':'Inactivo'}</span>
-    </div>
-  </div>`;
+async function sendTestAlert() {
+  const el=document.getElementById('alert-result');
+  const r=await fetch('/api/alerts/test',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({level:document.getElementById('alert-level').value,
+      title:document.getElementById('alert-title').value.trim(),
+      message:document.getElementById('alert-msg').value.trim()})});
+  const d=await r.json();
+  if(r.ok){el.style.color='var(--green)';el.textContent='✅ Alerta enviada ('+d.level+')';}
+  else{el.style.color='var(--red)';el.textContent='❌ '+(d.error||'Error');}
 }
 
-async function sendTestAlert(){
-  const result=document.getElementById('alert-result');
-  const body={level:document.getElementById('alert-level').value,title:document.getElementById('alert-title').value.trim(),message:document.getElementById('alert-msg').value.trim()};
-  const r=await fetch('/api/alerts/test',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const data=await r.json();
-  if(r.ok){result.style.color='var(--green)';result.textContent='Alerta enviada ('+data.level+'). Revisa email/webhook si estan configurados.';}
-  else{result.style.color='var(--red)';result.textContent='Error: '+(data.error||'fallo');}
+// ── API Keys ──────────────────────────────────────────────
+async function loadAPIKeys() {
+  const data=await api('/api/keys');
+  const tbody=document.getElementById('keys-tbody');
+  if(!data?.keys?.length){tbody.innerHTML='<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">Sin API Keys</td></tr>';return;}
+  tbody.innerHTML=data.keys.map(k=>`
+    <tr>
+      <td>${k.name}</td>
+      <td class="mono">${k.prefix}…</td>
+      <td>${roleBadge(k.role)}</td>
+      <td class="mono">${fmt(k.created_at)}</td>
+      <td class="mono">${k.last_used_at?fmt(k.last_used_at):'—'}</td>
+      <td>${k.active?`<button class="btn btn-danger btn-sm" onclick="revokeKey('${k.id}')">Revocar</button>`:'<span class="badge badge-gray">Revocada</span>'}</td>
+    </tr>`).join('');
 }
 
-let restoreSnapID='';
-function openRestoreModal(id,path){restoreSnapID=id;document.getElementById('restore-snap-path').value=path;document.getElementById('restore-dest').value='';document.getElementById('restore-modal-msg').textContent='';document.getElementById('restore-modal').classList.add('open');}
-function closeRestoreModal(){document.getElementById('restore-modal').classList.remove('open');restoreSnapID='';}
-async function confirmRestore(){
-  const msg=document.getElementById('restore-modal-msg');
-  const dest=document.getElementById('restore-dest').value.trim();
-  if(!dest){msg.style.color='var(--red)';msg.textContent='La ruta de destino es requerida';return;}
-  const r=await fetch('/api/restore',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({snapshot_id:restoreSnapID,restore_path:dest})});
-  const data=await r.json();
-  if(r.ok&&data.success){msg.style.color='var(--green)';msg.textContent=data.message;setTimeout(closeRestoreModal,2000);loadEvents();}
-  else{msg.style.color='var(--red)';msg.textContent='Error: '+(data.error||'fallo al restaurar');}
-}
-
-if(token)showApp();
-setInterval(()=>{const d=document.getElementById('tab-dashboard');if(d&&!d.classList.contains('hidden'))loadDashboard();},30000);
-
-// API KEYS
-async function loadAPIKeys(){
-  const data=await api('/api/keys');if(!data)return;
-  const el=document.getElementById('apikeys-table');
-  if(!data.keys?.length){el.innerHTML='<div class="empty">No hay API keys. Crea una para acceso externo.</div>';return;}
-  el.innerHTML='<table><thead><tr><th>Nombre</th><th>Prefijo</th><th>Rol</th><th>Estado</th><th>Creada</th><th>Ultimo uso</th><th></th></tr></thead><tbody>'+
-    data.keys.map(k=>`<tr>
-      <td><b>${k.name}</b></td>
-      <td style="font-family:monospace;color:var(--yellow)">${k.prefix}...</td>
-      <td><span class="badge badge-gray">${k.role}</span></td>
-      <td><span class="badge ${k.active?'badge-green':'badge-red'}">${k.active?'activa':'revocada'}</span></td>
-      <td style="color:var(--muted)">${fmtDate(k.created_at)}</td>
-      <td style="color:var(--muted)">${k.last_used_at?fmtDate(k.last_used_at):'nunca'}</td>
-      <td>${k.active?'<button class="btn btn-sm btn-danger" onclick="revokeKey(''+k.id+'')">Revocar</button>':''}</td>
-    </tr>`).join('')+'</tbody></table>';
-}
-
-async function createAPIKey(){
+async function createAPIKey() {
   const el=document.getElementById('key-result');
-  const body={name:document.getElementById('key-name').value.trim(),role:document.getElementById('key-role').value,expires_days:parseInt(document.getElementById('key-expires').value)||0};
-  const r=await fetch('/api/keys',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  const data=await r.json();
+  const r=await fetch('/api/keys',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+    body:JSON.stringify({name:document.getElementById('key-name').value.trim(),
+      role:document.getElementById('key-role').value,
+      expires_days:parseInt(document.getElementById('key-expires').value)||0})});
+  const d=await r.json();
   if(r.ok){
-    el.innerHTML=`
-      <div style="background:rgba(34,166,74,.1);border:1px solid rgba(34,166,74,.3);border-radius:8px;padding:16px;">
-        <div style="color:var(--green);font-weight:600;margin-bottom:8px;">API Key generada exitosamente</div>
-        <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;font-family:monospace;font-size:13px;word-break:break-all;color:var(--yellow);">${data.key}</div>
-        <div style="color:var(--red);font-size:12px;margin-top:8px;">${data.warning}</div>
-      </div>`;
+    el.innerHTML=`<div style="color:var(--green);margin-bottom:8px">✅ Guárdala ahora — no se puede recuperar después</div>
+      <div class="key-reveal">${d.key}</div>
+      <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText('${d.key}')">📋 Copiar</button>`;
     loadAPIKeys();
-  }else{el.innerHTML='<div style="color:var(--red);font-size:13px;">Error: '+(data.error||'fallo')+'</div>';}
+  } else { el.innerHTML=`<div style="color:var(--red)">❌ ${d.error||'Error'}</div>`; }
 }
 
-async function revokeKey(id){
-  if(!confirm('Revocar esta API key? Esta accion no se puede deshacer.'))return;
+async function revokeKey(id) {
+  if(!confirm('¿Revocar esta API Key?')) return;
   const r=await fetch('/api/keys/revoke',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({id})});
-  const data=await r.json();
-  if(data.success)loadAPIKeys();
-  else alert('Error al revocar');
+  if(r.ok) loadAPIKeys();
 }
 
+// ── Helpers ───────────────────────────────────────────────
+function fmt(d) {
+  if(!d) return '—';
+  const dt=new Date(d);
+  return isNaN(dt)?'—':dt.toLocaleString('es',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function statusBadge(s) {
+  const m={online:'badge-green',active:'badge-green',completed:'badge-green',offline:'badge-red',failed:'badge-red',error:'badge-red',pending:'badge-yellow',running:'badge-blue'};
+  return `<span class="badge ${m[s]||'badge-gray'}">${s||'—'}</span>`;
+}
+function severityBadge(s) {
+  const m={info:'badge-blue',warning:'badge-yellow',error:'badge-red',critical:'badge-red'};
+  return `<span class="badge ${m[s]||'badge-gray'}">${s||'—'}</span>`;
+}
+function roleBadge(r) {
+  const m={admin:'badge-red',operator:'badge-yellow',viewer:'badge-blue'};
+  return `<span class="badge ${m[r]||'badge-gray'}">${r||'—'}</span>`;
+}
 </script>
 </body>
 </html>

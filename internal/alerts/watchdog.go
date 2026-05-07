@@ -29,7 +29,7 @@ func NewWatchdog(db *storage.DB, alertsMgr *Manager, interval time.Duration) *Wa
 }
 
 func (w *Watchdog) Start() {
-	log.Printf("🐕 Watchdog iniciado — revisando cada %s", w.interval.String())
+	log.Printf("🐕 Watchdog iniciado — revisando cada %v", w.interval)
 	go func() {
 		for {
 			select {
