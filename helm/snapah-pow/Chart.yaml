@@ -1,0 +1,14 @@
+apiVersion: v2
+name: snapah-pow
+description: Centralized BTRFS snapshot manager
+type: application
+version: 0.1.0
+appVersion: "1.3.0"
+keywords:
+  - btrfs
+  - snapshots
+  - backup
+  - kubernetes
+maintainers:
+  - name: johandavid77
+    url: https://github.com/johandavid77

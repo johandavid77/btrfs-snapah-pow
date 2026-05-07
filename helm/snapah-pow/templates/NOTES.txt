@@ -1,0 +1,14 @@
+snapah pow instalado correctamente!
+
+Acceder al dashboard:
+  kubectl port-forward svc/{{ .Release.Name }}-server 8082:8082
+
+Luego abre: http://localhost:8082
+Credenciales: admin / {{ .Values.env.adminPassword }}
+
+Ver logs:
+  kubectl logs -l app={{ .Release.Name }} -f
+
+Ver metricas Prometheus:
+  kubectl port-forward svc/{{ .Release.Name }}-server 9093:9093
+  curl http://localhost:9093/metrics

@@ -1,0 +1,45 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/johandavid77/btrfs-snapah-pow
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  httpPort: 8082
+  grpcPort: 9091
+  metricsPort: 9093
+
+ingress:
+  enabled: false
+  className: nginx
+  host: snapah.example.com
+  tls: false
+
+persistence:
+  enabled: true
+  size: 5Gi
+  storageClass: ""
+
+env:
+  adminPassword: "admin123"
+  jwtSecret: "change-me-in-production"
+  databaseUrl: "data/snapah.db"
+  alertEmailTo: ""
+  alertWebhookUrl: ""
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+securityContext:
+  privileged: true  # requerido para btrfs
+
+serviceMonitor:
+  enabled: false
+  namespace: monitoring
