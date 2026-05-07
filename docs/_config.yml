@@ -1,0 +1,6 @@
+theme: jekyll-theme-midnight
+title: snapah pow
+description: Centralized BTRFS snapshot manager
+url: https://johandavid77.github.io
+baseurl: /btrfs-snapah-pow
+show_downloads: true
