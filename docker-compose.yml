@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   snapah-server:
     image: ghcr.io/johandavid77/btrfs-snapah-pow:latest

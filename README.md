@@ -1,3 +1,9 @@
+[![CI](https://github.com/johandavid77/btrfs-snapah-pow/actions/workflows/ci.yml/badge.svg)](https://github.com/johandavid77/btrfs-snapah-pow/actions/workflows/ci.yml)
+[![Release](https://github.com/johandavid77/btrfs-snapah-pow/actions/workflows/release.yml/badge.svg)](https://github.com/johandavid77/btrfs-snapah-pow/actions/workflows/release.yml)
+[![Docker](https://ghcr-badge.egpl.dev/johandavid77/btrfs-snapah-pow/size)](https://github.com/johandavid77/btrfs-snapah-pow/pkgs/container/btrfs-snapah-pow)
+[![Go](https://img.shields.io/badge/Go-1.24-00ADD8?logo=go)](https://go.dev)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 # BTRFS Snapah Pow
 
 <p align="center">
