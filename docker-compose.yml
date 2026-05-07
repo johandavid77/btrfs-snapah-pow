@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  snapah-server:
+    image: ghcr.io/johandavid77/btrfs-snapah-pow:latest
+    build: .
+    container_name: snapah-server
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+      - "9091:9091"
+      - "9093:9093"
+    volumes:
+      - snapah-data:/opt/snapah/data
+    environment:
+      - SNAPAH_ADMIN_PASSWORD=${SNAPAH_ADMIN_PASSWORD:-admin123}
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production}
+      - DATABASE_URL=${DATABASE_URL:-data/snapah.db}
+      - ALERT_EMAIL_TO=${ALERT_EMAIL_TO:-}
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+    privileged: true  # necesario para btrfs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  snapah-agent:
+    image: ghcr.io/johandavid77/btrfs-snapah-pow:latest
+    container_name: snapah-agent
+    restart: unless-stopped
+    entrypoint: ["./bin/snapah-agent"]
+    environment:
+      - SNAPAH_SERVER=snapah-server:9091
+      - SNAPAH_TOKEN=${SNAPAH_TOKEN:-demo-token}
+      - SNAPAH_NODE_NAME=${HOSTNAME:-agent-1}
+    privileged: true
+    depends_on:
+      snapah-server:
+        condition: service_healthy
+
+volumes:
+  snapah-data:

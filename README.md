@@ -82,7 +82,7 @@ GPL3 2026 Johan David
 - [x] Tabla de snapshots con filtros
 - [x] Crear y eliminar snapshots desde el navegador
 - [x] Gestión de políticas cron via UI
-- [ ] Log de eventos en tiempo real (WebSocket)
+- [x] Log de eventos en tiempo real (WebSocket)
 - [x] Indicador de estado de nodos online/offline
 
 ### v0.4.0 — Replicación
