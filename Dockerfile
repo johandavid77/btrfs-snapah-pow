@@ -5,22 +5,23 @@ RUN apt-get update && apt-get install -y \
     protobuf-compiler libsqlite3-dev && \
     rm -rf /var/lib/apt/lists/*
 
-RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest && \
-    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-
 WORKDIR /build
+
+# Copiar dependencias primero para cache
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Copiar codigo fuente
 COPY . .
+
 RUN CGO_ENABLED=1 go build \
-    -ldflags "-s -w -X main.appVersion=$(cat VERSION)" \
+    -ldflags "-s -w" \
     -o bin/snapah-server ./cmd/server && \
     CGO_ENABLED=1 go build \
-    -ldflags "-s -w -X main.appVersion=$(cat VERSION)" \
+    -ldflags "-s -w" \
     -o bin/snapah-agent ./cmd/agent && \
     CGO_ENABLED=1 go build \
-    -ldflags "-s -w -X main.appVersion=$(cat VERSION)" \
+    -ldflags "-s -w" \
     -o bin/snapah ./cmd/cli
 
 # ── Runtime stage ─────────────────────────────────────────

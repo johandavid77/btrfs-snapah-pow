@@ -1,0 +1,25 @@
+# Git
+.git
+.gitignore
+
+# Binarios locales
+bin/
+dist/
+
+# DB local
+data/
+*.db
+
+# Docs y helm (no necesarios en imagen)
+docs/
+helm/
+
+# Tests
+tests/
+
+# CI
+.github/
+
+# Dev
+.env
+*.log
