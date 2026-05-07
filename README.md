@@ -104,5 +104,5 @@ GPL3 2026 Johan David
 - [x] Imagen Docker oficial
 - [x] Helm chart para Kubernetes
 - [x] CLI interactivo (TUI con Bubble Tea)
-- [ ] Documentación completa en GitHub Pages
+- [x] Documentación completa en GitHub Pages
 - [x] Tests de integración end-to-end
