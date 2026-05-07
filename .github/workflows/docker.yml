@@ -20,6 +20,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: false
+
+      - name: Install deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y libsqlite3-dev
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Build binaries
+        run: |
+          CGO_ENABLED=1 go build -ldflags "-s -w" -o bin/snapah-server ./cmd/server
+          CGO_ENABLED=1 go build -ldflags "-s -w" -o bin/snapah-agent  ./cmd/agent
+          CGO_ENABLED=1 go build -ldflags "-s -w" -o bin/snapah        ./cmd/cli
+          ls -lh bin/
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -42,6 +60,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          file: Dockerfile.ci
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

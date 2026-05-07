@@ -1,0 +1,25 @@
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    ca-certificates libsqlite3-0 btrfs-progs curl && \
+    rm -rf /var/lib/apt/lists/* && \
+    useradd -r -s /bin/false snapah
+
+WORKDIR /opt/snapah
+
+COPY bin/snapah-server  ./bin/
+COPY bin/snapah-agent   ./bin/
+COPY bin/snapah         ./bin/
+COPY web                ./web/
+COPY config.yaml        ./
+
+RUN mkdir -p data && chown -R snapah:snapah /opt/snapah
+
+USER snapah
+
+EXPOSE 8082 9091 9093
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8082/health || exit 1
+
+ENTRYPOINT ["./bin/snapah-server"]
