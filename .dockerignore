@@ -2,8 +2,7 @@
 .git
 .gitignore
 
-# Binarios locales
-bin/
+# dist no necesario
 dist/
 
 # DB local
