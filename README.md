@@ -25,6 +25,93 @@ Servidor central + agentes distribuidos + CLI comunicados por gRPC.
 
 ## Uso
 
+## CLI - snapah
+
+El CLI tiene dos modos: **TUI interactivo** y **comandos directos**.
+
+### TUI interactivo (sin argumentos)
+
+```bash
+./bin/snapah
+# o si está instalado:
+snapah
+```
+
+Navega con `↑↓`, selecciona con `Enter`, vuelve con `Esc`.
+Ingresa con `admin` / `admin123` (cambiar en producción).
+
+**Pantallas disponibles:**
+- 🖥️  Nodos — lista de agentes conectados
+- 📸  Snapshots — todos los snapshots con estado
+- 📋  Eventos — log de eventos del servidor
+- 📅  Políticas — políticas de retención activas
+
+### Comandos directos (scripting)
+
+```bash
+# Ver estado del servidor
+snapah status
+
+# Ver versión
+snapah version
+```
+
+### Variables de entorno del CLI
+
+```bash
+# Apuntar a un servidor remoto
+export SNAPAH_URL=http://192.168.1.100:8082
+snapah
+```
+
+---
+
+## Agente - snapah-agent
+
+El agente se instala en cada nodo BTRFS y se registra automáticamente con el servidor.
+
+```bash
+# Iniciar el agente
+SNAPAH_SERVER=192.168.1.100:9091 \
+SNAPAH_TOKEN=tu-token-secreto \
+SNAPAH_NODE_NAME=nodo-1 \
+./bin/snapah-agent
+
+# Con Docker
+docker run -d \
+  --privileged \
+  -e SNAPAH_SERVER=192.168.1.100:9091 \
+  -e SNAPAH_TOKEN=tu-token \
+  -e SNAPAH_NODE_NAME=nodo-1 \
+  ghcr.io/johandavid77/btrfs-snapah-pow:latest \
+  ./bin/snapah-agent
+```
+
+---
+
+## Servidor - snapah-server
+
+```bash
+# Inicio básico
+./bin/snapah-server
+
+# Con configuración personalizada
+SNAPAH_ADMIN_PASSWORD=mi_password \
+JWT_SECRET=$(openssl rand -hex 32) \
+DATABASE_URL=data/snapah.db \
+./bin/snapah-server
+
+# Ver logs en tiempo real
+tail -f /tmp/snapah.log
+
+# Endpoints disponibles
+# HTTP:    http://localhost:8082
+# gRPC:    localhost:9091
+# Metrics: http://localhost:9093/metrics
+# WS:      ws://localhost:8082/ws/events
+```
+
+
 
 
 ## REST API
