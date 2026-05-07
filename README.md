@@ -101,8 +101,8 @@ GPL3 2026 Johan David
 
 ### v0.6.0 — Producción
 - [x] Soporte PostgreSQL además de SQLite
-- [ ] Imagen Docker oficial
-- [ ] Helm chart para Kubernetes
+- [x] Imagen Docker oficial
+- [x] Helm chart para Kubernetes
 - [x] CLI interactivo (TUI con Bubble Tea)
 - [ ] Documentación completa en GitHub Pages
 - [x] Tests de integración end-to-end
